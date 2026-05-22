@@ -2064,23 +2064,7 @@ function exportCotizacion(){
     <tr><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">IVA (19%)</td><td style="padding:7px 10px;text-align:right">${fp(iva)}</td></tr>
     <tr style="background:#eef2ff;font-weight:700;border-top:2px solid #3b5bdb"><td colspan="4" style="padding:10px;text-align:right;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px;font-size:15px;color:#3b5bdb">${fp(totalBruto)}</td></tr>`;
   const table=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Precio neto unit.</th><th style="padding:7px;text-align:right">Neto total</th></tr></thead><tbody>${rows}</tbody><tfoot>${tfoot}</tfoot></table>`;
-  const footer=`<div style="border-top:1px solid #ddd;padding-top:20px;font-size:12px;color:#333;line-height:1.75">
-    <p style="margin:0 0 10px;color:#666;font-style:italic">Esta cotización tiene una validez de <strong style="color:#333">5 días hábiles</strong> desde su envío.</p>
-    <p style="margin:0 0 6px"><strong>Los computadores cotizados en nuestra web NO están armados.</strong></p>
-    <p style="margin:0 0 6px">Al recibir el pago o abono, se procederá con el armado de su pedido.</p>
-    <p style="margin:0 0 14px">El tiempo estimado de armado es de <strong>4 a 6 días hábiles</strong>, considerar que el tiempo del envío es adicional y dependerá del Courier.</p>
-    <hr style="border:none;border-top:1px solid #ccc;margin:12px 0">
-    <p style="margin:0 0 4px">– El producto cotizado se entrega armado, probado y con <strong>Windows 10 PRO instalado + Drivers correspondientes</strong>.</p>
-    <p style="margin:0 0 4px">– El producto cotizado <strong>NO incluye</strong>: periféricos (T/M/P), Monitor, Programas, Juegos.</p>
-    <p style="margin:0 0 14px">– Todos los componentes utilizados en el armado son 100% nuevos y poseen su garantía oficial del fabricante, <strong>6 meses por fallas de fábrica</strong> y <strong>6 meses adicionales de revisión gratuita</strong>.</p>
-    <hr style="border:none;border-top:1px solid #ccc;margin:12px 0">
-    <p style="margin:0 0 4px;font-size:13px;font-weight:700">Datos para Realizar Transferencia</p>
-    <p style="margin:0 0 2px">Banco Chile &nbsp;·&nbsp; <strong>Desit Gamer Store</strong></p>
-    <p style="margin:0 0 2px">RUT &nbsp;<strong>77.839.066-3</strong></p>
-    <p style="margin:0 0 2px">Cuenta corriente &nbsp;<strong>166 23169-10</strong></p>
-    <p style="margin:0">Correo &nbsp;<strong>contacto.desit@gmail.com</strong></p>
-  </div>`;
-  printCotizacion('Cotización: '+pk.label,table,footer);
+  printCotizacion('Cotización: '+pk.label,table);
 }
 function exportLogReport(){
   const c=cur();const fp=n=>(c==='CLP$'?'CLP$ '+Math.round(n).toLocaleString('es-CL'):c+n.toLocaleString('es-CL'));
@@ -2090,22 +2074,25 @@ function exportLogReport(){
   const blocks=Object.entries(sm).map(([sn,sp])=>{let stc=0;const rows=sp.map(p=>{const q=Math.max(1,parseInt(p.qty)||1),co=parseFloat(p.cost)||0;stc+=co*q;return`<tr><td style="font-size:11px;font-weight:700;color:#3b5bdb;background:#eff3ff">${p.clientName}</td><td>${p.type}</td><td><b>${p.name||'—'}</b></td><td style="text-align:center">${q}</td><td style="text-align:right">${fp(co)}</td><td style="text-align:right;font-weight:700">${fp(Math.round(co*q))}</td></tr>`}).join('');return`<h3 style="font-size:15px;margin:22px 0 9px;border-left:4px solid #3b5bdb;padding-left:10px">${sn}</h3><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Cliente</th><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Costo u.</th><th style="padding:7px;text-align:right">Total</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f8f8fb;font-weight:700;border-top:2px solid #ddd"><td colspan="5" style="padding:7px">Subtotal ${sn}</td><td style="text-align:right;padding:7px">${fp(Math.round(stc))}</td></tr></tfoot></table>`}).join('');
   printW('Logística · '+fmtDate(logDate),blocks);
 }
-function printCotizacion(title,content,footer){
+function printCotizacion(title,content){
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
-    body{font-family:'Segoe UI',Arial,sans-serif;padding:30px;color:#1a1a1a;max-width:920px;margin:0 auto;display:flex;flex-direction:column;min-height:95vh}
+    body{font-family:'Segoe UI',Arial,sans-serif;padding:30px 30px 110px;color:#1a1a1a;max-width:920px;margin:0 auto}
     h1{font-size:19px;margin-bottom:3px}
     .sub{font-size:12px;color:#777;margin-bottom:20px}
-    .cotiz-content{flex:1}
-    .cotiz-footer{margin-top:auto;padding-top:24px}
-    @media print{button{display:none}}
+    .cotiz-footer{font-size:10.5px;color:#444;line-height:1.6;border-top:1px solid #bbb;padding:8px 30px 6px;background:#fff}
+    @media screen{.cotiz-footer{margin-top:32px;border-top:1px solid #ddd;padding:16px 0 0}}
+    @media print{button{display:none}.cotiz-footer{position:fixed;bottom:0;left:0;right:0;padding:7px 30px 5px}}
   </style></head><body>
     <h1>${title}</h1>
     <div class="sub">Desit SPA · ${new Date().toLocaleDateString('es-CL')}</div>
-    <div class="cotiz-content">${content}</div>
-    <div class="cotiz-footer">${footer}</div>
+    <div>${content}</div>
+    <div class="cotiz-footer">
+      <div><strong>Validez:</strong> 5 días hábiles desde envío &nbsp;·&nbsp; <strong>Armado:</strong> 4–6 días hábiles (envío adicional según Courier) &nbsp;·&nbsp; Los equipos se entregan armados, probados y con <strong>Windows 10 PRO + Drivers</strong>.</div>
+      <div><strong>NO incluye:</strong> periféricos (T/M/P), monitor, programas ni juegos &nbsp;·&nbsp; Componentes 100% nuevos con garantía oficial: <strong>6 meses fábrica + 6 meses revisión gratuita</strong>.</div>
+      <div><strong>Transferencia:</strong> Banco Chile &nbsp;·&nbsp; Desit Gamer Store &nbsp;·&nbsp; RUT 77.839.066-3 &nbsp;·&nbsp; Cta. Cte. 166 23169-10 &nbsp;·&nbsp; contacto.desit@gmail.com</div>
+    </div>
     <script>window.onload=()=>window.print()<\/script>
   </body></html>`);
   w.document.close();
