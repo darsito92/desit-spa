@@ -2047,15 +2047,24 @@ function exportReport(title,parts){
 function exportCotizacion(){
   const pk=getActivePack();if(!pk)return;
   const parts=pk.parts||[];
-  const c=cur(),t=totals(parts);
+  const c=cur();
   const fp=n=>(c==='CLP$'?'CLP$ '+Math.round(n).toLocaleString('es-CL'):c+n.toLocaleString('es-CL'));
+  let totalNeto=0;
   const rows=parts.filter(p=>(parseFloat(p.cost)||0)>0).map(p=>{
-    const q=Math.max(1,parseInt(p.qty)||1),sv=to990(saleOf(parseFloat(p.cost)||0,p.margin));
-    return`<tr><td style="padding:7px">${p.type}</td><td style="padding:7px">${p.name||'—'}</td><td style="padding:7px;text-align:center">${q}</td><td style="padding:7px;text-align:right">${fp(sv)}</td><td style="padding:7px;text-align:right;font-weight:700">${fp(sv*q)}</td></tr>`;
+    const q=Math.max(1,parseInt(p.qty)||1);
+    const svBruto=to990(saleOf(parseFloat(p.cost)||0,p.margin));
+    const neto=Math.round(svBruto/1.19);
+    totalNeto+=neto*q;
+    return`<tr><td style="padding:7px">${p.type}</td><td style="padding:7px">${p.name||'—'}</td><td style="padding:7px;text-align:center">${q}</td><td style="padding:7px;text-align:right">${fp(neto)}</td><td style="padding:7px;text-align:right;font-weight:600">${fp(neto*q)}</td></tr>`;
   }).join('');
-  const table=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Precio unit.</th><th style="padding:7px;text-align:right">Precio total</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#eef2ff;font-weight:700;border-top:2px solid #3b5bdb"><td colspan="4" style="padding:10px;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px;font-size:15px;color:#3b5bdb">${fp(Math.round(t.ts))}</td></tr></tfoot></table>`;
-  const summary=`<div style="background:#eef2ff;border:1px solid #c5d0f5;border-radius:10px;padding:14px 20px;margin-bottom:20px;display:inline-block"><div style="font-size:11px;color:#555;margin-bottom:4px">Total cotización</div><div style="font-size:22px;font-weight:700;color:#3b5bdb">${fp(Math.round(t.ts))}</div></div>`;
-  printW('Cotización: '+pk.label,summary+table);
+  const iva=Math.round(totalNeto*0.19);
+  const totalBruto=totalNeto+iva;
+  const tfoot=`
+    <tr style="border-top:1px solid #ddd"><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">Neto</td><td style="padding:7px 10px;text-align:right">${fp(totalNeto)}</td></tr>
+    <tr><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">IVA (19%)</td><td style="padding:7px 10px;text-align:right">${fp(iva)}</td></tr>
+    <tr style="background:#eef2ff;font-weight:700;border-top:2px solid #3b5bdb"><td colspan="4" style="padding:10px;text-align:right;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px;font-size:15px;color:#3b5bdb">${fp(totalBruto)}</td></tr>`;
+  const table=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Precio neto unit.</th><th style="padding:7px;text-align:right">Neto total</th></tr></thead><tbody>${rows}</tbody><tfoot>${tfoot}</tfoot></table>`;
+  printW('Cotización: '+pk.label,table);
 }
 function exportLogReport(){
   const c=cur();const fp=n=>(c==='CLP$'?'CLP$ '+Math.round(n).toLocaleString('es-CL'):c+n.toLocaleString('es-CL'));
