@@ -2064,7 +2064,22 @@ function exportCotizacion(){
     <tr><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">IVA (19%)</td><td style="padding:7px 10px;text-align:right">${fp(iva)}</td></tr>
     <tr style="background:#eef2ff;font-weight:700;border-top:2px solid #3b5bdb"><td colspan="4" style="padding:10px;text-align:right;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px;font-size:15px;color:#3b5bdb">${fp(totalBruto)}</td></tr>`;
   const table=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Precio neto unit.</th><th style="padding:7px;text-align:right">Neto total</th></tr></thead><tbody>${rows}</tbody><tfoot>${tfoot}</tfoot></table>`;
-  printW('Cotización: '+pk.label,table);
+  const footer=`<div style="margin-top:32px;border-top:1px solid #ddd;padding-top:20px;font-size:12px;color:#333;line-height:1.75">
+    <p style="margin:0 0 6px"><strong>Los computadores cotizados en nuestra web NO están armados.</strong></p>
+    <p style="margin:0 0 6px">Al recibir el pago o abono, se procederá con el armado de su pedido.</p>
+    <p style="margin:0 0 14px">El tiempo estimado de armado es de <strong>4 a 6 días hábiles</strong>, considerar que el tiempo del envío es adicional y dependerá del Courier.</p>
+    <hr style="border:none;border-top:1px solid #ccc;margin:12px 0">
+    <p style="margin:0 0 4px">– El producto cotizado se entrega armado, probado y con <strong>Windows 10 PRO instalado + Drivers correspondientes</strong>.</p>
+    <p style="margin:0 0 4px">– El producto cotizado <strong>NO incluye</strong>: periféricos (T/M/P), Monitor, Programas, Juegos.</p>
+    <p style="margin:0 0 14px">– Todos los componentes utilizados en el armado son 100% nuevos y poseen su garantía oficial del fabricante, <strong>6 meses por fallas de fábrica</strong> y <strong>6 meses adicionales de revisión gratuita</strong>.</p>
+    <hr style="border:none;border-top:1px solid #ccc;margin:12px 0">
+    <p style="margin:0 0 4px;font-size:13px;font-weight:700">Datos para Realizar Transferencia</p>
+    <p style="margin:0 0 2px">Banco Chile &nbsp;·&nbsp; <strong>Desit Gamer Store</strong></p>
+    <p style="margin:0 0 2px">RUT &nbsp;<strong>77.839.066-3</strong></p>
+    <p style="margin:0 0 2px">Cuenta corriente &nbsp;<strong>166 23169-10</strong></p>
+    <p style="margin:0">Correo &nbsp;<strong>contacto.desit@gmail.com</strong></p>
+  </div>`;
+  printW('Cotización: '+pk.label,table+footer);
 }
 function exportLogReport(){
   const c=cur();const fp=n=>(c==='CLP$'?'CLP$ '+Math.round(n).toLocaleString('es-CL'):c+n.toLocaleString('es-CL'));
