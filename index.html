@@ -964,7 +964,7 @@ function renderPacksMain(){
   const pk=getActivePack();if(!pk)return;
   buildPartsMain('pk-main',pk.parts,pk.label,'pk',
     `<input class="big-inp" value="${pk.label.replace(/"/g,'&quot;')}" placeholder="Nombre del pack" oninput="pfName(this.value)">`,
-    `<button class="btn-danger" onclick="pfDel()">✕ Eliminar</button>`
+    `<div style="display:flex;gap:6px"><button class="btn-h btn-ac" onclick="exportCotizacion()">📋 Cotización</button><button class="btn-danger" onclick="pfDel()">✕ Eliminar</button></div>`
   );
 }
 function pfSet(pid,f,v){const pk=getActivePack();if(!pk)return;setField(pk.parts,pid,f,v);lightUpdate(pk.parts,pid);renderPanel('pk-panel',pk.parts);S()}
@@ -2043,6 +2043,19 @@ function exportReport(title,parts){
   const blocks=Object.entries(sm).map(([sn,sp])=>{let stc=0,sts=0;const rows=sp.map(p=>{const q=Math.max(1,parseInt(p.qty)||1),co=parseFloat(p.cost)||0,sv=to990(saleOf(co,p.margin));stc+=co*q;sts+=sv*q;return`<tr><td>${p.type}</td><td>${p.name||'—'}</td><td style="text-align:center">${q}</td><td style="text-align:right">${fp(co)}</td><td style="text-align:center">${p.margin}%</td><td style="text-align:right;font-weight:700">${fp(sv*q)}</td></tr>`}).join('');return`<h3 style="font-size:14px;margin:20px 0 8px;border-left:3px solid #3b5bdb;padding-left:8px">${sn}</h3><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Costo</th><th style="padding:7px;text-align:center">Margen</th><th style="padding:7px;text-align:right">Precio venta</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f8f8fb;font-weight:700;border-top:2px solid #ddd"><td colspan="3" style="padding:7px">Subtotal ${sn}</td><td style="text-align:right;padding:7px">${fp(Math.round(stc))}</td><td></td><td style="text-align:right;padding:7px">${fp(Math.round(sts))}</td></tr></tfoot></table>`}).join('');
   const summary=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:20px"><div style="background:#f8f8fb;border:1px solid #eee;border-radius:8px;padding:12px"><div style="font-size:11px;color:#888;margin-bottom:3px">Costo</div><div style="font-size:16px;font-weight:700">${fp(Math.round(t.tc))}</div></div><div style="background:#f8f8fb;border:1px solid #eee;border-radius:8px;padding:12px"><div style="font-size:11px;color:#888;margin-bottom:3px">Precio venta</div><div style="font-size:16px;font-weight:700;color:#3b5bdb">${fp(Math.round(t.ts))}</div></div><div style="background:#f8f8fb;border:1px solid #eee;border-radius:8px;padding:12px"><div style="font-size:11px;color:#888;margin-bottom:3px">Ganancia</div><div style="font-size:16px;font-weight:700;color:#1a9e5c">+${fp(Math.round(t.profit))}</div></div><div style="background:#f8f8fb;border:1px solid #eee;border-radius:8px;padding:12px"><div style="font-size:11px;color:#888;margin-bottom:3px">Margen</div><div style="font-size:16px;font-weight:700;color:#e67e00">${t.margin.toFixed(1)}%</div></div></div>`;
   printW(title,summary+blocks);
+}
+function exportCotizacion(){
+  const pk=getActivePack();if(!pk)return;
+  const parts=pk.parts||[];
+  const c=cur(),t=totals(parts);
+  const fp=n=>(c==='CLP$'?'CLP$ '+Math.round(n).toLocaleString('es-CL'):c+n.toLocaleString('es-CL'));
+  const rows=parts.filter(p=>(parseFloat(p.cost)||0)>0).map(p=>{
+    const q=Math.max(1,parseInt(p.qty)||1),sv=to990(saleOf(parseFloat(p.cost)||0,p.margin));
+    return`<tr><td style="padding:7px">${p.type}</td><td style="padding:7px">${p.name||'—'}</td><td style="padding:7px;text-align:center">${q}</td><td style="padding:7px;text-align:right">${fp(sv)}</td><td style="padding:7px;text-align:right;font-weight:700">${fp(sv*q)}</td></tr>`;
+  }).join('');
+  const table=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Precio unit.</th><th style="padding:7px;text-align:right">Precio total</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#eef2ff;font-weight:700;border-top:2px solid #3b5bdb"><td colspan="4" style="padding:10px;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px;font-size:15px;color:#3b5bdb">${fp(Math.round(t.ts))}</td></tr></tfoot></table>`;
+  const summary=`<div style="background:#eef2ff;border:1px solid #c5d0f5;border-radius:10px;padding:14px 20px;margin-bottom:20px;display:inline-block"><div style="font-size:11px;color:#555;margin-bottom:4px">Total cotización</div><div style="font-size:22px;font-weight:700;color:#3b5bdb">${fp(Math.round(t.ts))}</div></div>`;
+  printW('Cotización: '+pk.label,summary+table);
 }
 function exportLogReport(){
   const c=cur();const fp=n=>(c==='CLP$'?'CLP$ '+Math.round(n).toLocaleString('es-CL'):c+n.toLocaleString('es-CL'));
