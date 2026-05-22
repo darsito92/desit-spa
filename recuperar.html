@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Recuperar Datos — Desit SPA</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1117;color:#e8ecf8;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#181c27;border:1px solid #2d3350;border-radius:16px;padding:32px;width:100%;max-width:620px}
+h1{font-size:20px;font-weight:700;margin-bottom:6px}
+p{font-size:13px;color:#8890b0;margin-bottom:20px;line-height:1.6}
+.stat{background:#1e2333;border:1px solid #2d3350;border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.stat-label{font-size:12px;color:#8890b0}
+.stat-val{font-size:15px;font-weight:700;color:#5b7fff}
+.btn{width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;margin-top:10px;transition:opacity .15s}
+.btn-restore{background:#5b7fff;color:#fff}
+.btn-restore:hover{opacity:.85}
+.btn-restore:disabled{background:#2d3350;color:#555e80;cursor:not-allowed}
+.status{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;display:none}
+.ok{background:#0d2a1c;color:#22c97a;border:1px solid #22c97a}
+.err{background:#2a0d0d;color:#ff5b5b;border:1px solid #ff5b5b}
+.warn{background:#2a1f0d;color:#f5a623;border:1px solid #f5a623}
+.section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#555e80;margin:18px 0 8px}
+pre{background:#1e2333;border:1px solid #2d3350;border-radius:8px;padding:12px;font-size:11px;color:#8890b0;overflow-x:auto;max-height:120px;overflow-y:auto}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔧 Recuperar datos Desit SPA</h1>
+  <p>Esta herramienta lee el backup local del navegador y lo restaura a Firebase. Úsala solo una vez para recuperar tus datos.</p>
+
+  <div class="section">Backup encontrado en este navegador</div>
+  <div id="stats">Analizando...</div>
+
+  <div class="section">Vista previa (primeros registros)</div>
+  <pre id="preview">—</pre>
+
+  <button class="btn btn-restore" id="btn-restore" disabled onclick="restoreToFirebase()">
+    ⬆ Restaurar a Firebase
+  </button>
+
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+const LOCAL_KEY = 'desit_spa_local';
+const FB_CFG = {
+  apiKey: "AIzaSyArg6b7IT_UB7aQ-dw1SRxgP6rU7dxs9Q8",
+  authDomain: "desit-spa.firebaseapp.com",
+  databaseURL: "https://desit-spa-default-rtdb.firebaseio.com",
+  projectId: "desit-spa",
+  storageBucket: "desit-spa.firebasestorage.app",
+  messagingSenderId: "104975419013",
+  appId: "1:104975419013:web:121a1974b3f4ba7f8c0bec"
+};
+
+let savedData = null;
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + type;
+  el.style.display = 'block';
+}
+
+function stat(label, value, color) {
+  return `<div class="stat"><span class="stat-label">${label}</span><span class="stat-val" style="color:${color||'#5b7fff'}">${value}</span></div>`;
+}
+
+// Analizar localStorage
+(function analyze() {
+  const raw = localStorage.getItem(LOCAL_KEY);
+  const statsEl = document.getElementById('stats');
+  const previewEl = document.getElementById('preview');
+
+  if (!raw) {
+    statsEl.innerHTML = `<div class="stat"><span class="stat-label">Estado</span><span class="stat-val" style="color:#ff5b5b">Sin backup local en este navegador</span></div>`;
+    previewEl.textContent = 'No se encontró desit_spa_local en este navegador.';
+    showStatus('⚠ No hay backup local aquí. Prueba abrir este archivo en el navegador y dispositivo donde usabas la app.', 'warn');
+    return;
+  }
+
+  try {
+    savedData = JSON.parse(raw);
+    const inv = Array.isArray(savedData.inventory) ? savedData.inventory.length : 0;
+    const ventas = Array.isArray(savedData.ventas) ? savedData.ventas.length : 0;
+    const packs = Array.isArray(savedData.packs) ? savedData.packs.length : 0;
+    const compras = Array.isArray(savedData.compras) ? savedData.compras.length : 0;
+    const campaigns = Array.isArray(savedData.campaigns) ? savedData.campaigns.length : 0;
+    const gastos = savedData.gastos || {};
+    const totalGastos = (gastos.gerencia||[]).length + (gastos.costosFijos||[]).length + (gastos.marketing||[]).length;
+    const capital = savedData.capital || 0;
+
+    const hasRealData = inv > 0 || ventas > 0 || packs > 0 || compras > 0;
+
+    statsEl.innerHTML =
+      stat('Productos en inventario', inv, inv > 0 ? '#22c97a' : '#ff5b5b') +
+      stat('Ventas / clientes', ventas, ventas > 0 ? '#22c97a' : '#8890b0') +
+      stat('Packs de build', packs, packs > 0 ? '#22c97a' : '#8890b0') +
+      stat('Compras registradas', compras, compras > 0 ? '#22c97a' : '#8890b0') +
+      stat('Gastos registrados', totalGastos, totalGastos > 0 ? '#22c97a' : '#8890b0') +
+      stat('Campañas', campaigns, '#8890b0') +
+      stat('Capital configurado', 'CLP$ ' + Math.round(capital).toLocaleString('es-CL'), '#f5a623');
+
+    const preview = {
+      inventario: (savedData.inventory||[]).slice(0,3).map(i=>i.name),
+      ventas: (savedData.ventas||[]).slice(0,3).map(v=>v.name),
+      packs: (savedData.packs||[]).slice(0,3).map(p=>p.label),
+    };
+    previewEl.textContent = JSON.stringify(preview, null, 2);
+
+    if (hasRealData) {
+      document.getElementById('btn-restore').disabled = false;
+      showStatus('✓ Backup encontrado con datos. Haz clic en "Restaurar" para enviarlo a Firebase.', 'ok');
+    } else {
+      showStatus('⚠ El backup existe pero parece estar vacío. Puede que este navegador no tenga los datos originales.', 'warn');
+    }
+  } catch(e) {
+    statsEl.innerHTML = `<div class="stat"><span class="stat-label">Error</span><span class="stat-val" style="color:#ff5b5b">Backup corrupto</span></div>`;
+    showStatus('Error al leer el backup: ' + e.message, 'err');
+  }
+})();
+
+function restoreToFirebase() {
+  if (!savedData) return;
+  const btn = document.getElementById('btn-restore');
+  btn.disabled = true;
+  btn.textContent = 'Conectando a Firebase...';
+  showStatus('Conectando a Firebase...', 'warn');
+
+  try {
+    firebase.initializeApp(FB_CFG);
+    const db = firebase.database();
+    const ref = db.ref('desit_spa_data');
+
+    btn.textContent = 'Restaurando datos...';
+    ref.set(savedData)
+      .then(() => {
+        showStatus('✅ ¡Datos restaurados correctamente! Ahora abre index.html para verificar.', 'ok');
+        btn.textContent = '✓ Restaurado';
+      })
+      .catch(err => {
+        showStatus('Error al escribir en Firebase: ' + err.message + ' — Verifica que las reglas de Firebase permitan escritura.', 'err');
+        btn.disabled = false;
+        btn.textContent = '⬆ Reintentar';
+      });
+  } catch(e) {
+    showStatus('Error al conectar Firebase: ' + e.message, 'err');
+    btn.disabled = false;
+    btn.textContent = '⬆ Reintentar';
+  }
+}
+</script>
+</body>
+</html>

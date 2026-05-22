@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Recuperar Cartola Mayo 2026 — Desit SPA</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1117;color:#e8ecf8;font-family:system-ui,sans-serif;padding:24px}
+h1{font-size:20px;font-weight:700;margin-bottom:4px}
+.sub{font-size:13px;color:#8890b0;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:24px}
+.kpi{background:#181c27;border:1px solid #2d3350;border-radius:10px;padding:14px 16px}
+.kpi-l{font-size:11px;color:#8890b0;margin-bottom:4px}
+.kpi-v{font-size:18px;font-weight:700}
+.section{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#555e80;margin:20px 0 8px;display:flex;align-items:center;justify-content:space-between}
+.count{background:#1e2333;border-radius:4px;padding:2px 7px;font-size:11px;color:#8890b0;font-weight:400;text-transform:none;letter-spacing:0}
+.row{background:#181c27;border:1px solid #2d3350;border-radius:8px;padding:10px 13px;margin-bottom:5px;display:grid;grid-template-columns:85px 1fr auto;gap:10px;align-items:center;font-size:12px}
+.row-date{color:#555e80}
+.row-desc{color:#e8ecf8}
+.row-sub{font-size:11px;color:#555e80;margin-top:2px}
+.row-amt{font-weight:700;text-align:right;white-space:nowrap}
+.cargo{color:#ff5b5b}
+.abono{color:#22c97a}
+.btn{padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:opacity .15s;margin-right:8px}
+.btn-main{background:#5b7fff;color:#fff}
+.btn-main:hover{opacity:.85}
+.btn-main:disabled{background:#2d3350;color:#555e80;cursor:not-allowed}
+.btn-sec{background:#1e2333;border:1px solid #2d3350;color:#8890b0}
+.status{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;display:none}
+.ok{background:#0d2a1c;color:#22c97a;border:1px solid #22c97a}
+.err{background:#2a0d0d;color:#ff5b5b;border:1px solid #ff5b5b}
+.warn{background:#2a1f0d;color:#f5a623;border:1px solid #f5a623}
+.actions{position:sticky;top:0;background:#0f1117;padding:16px 0 14px;z-index:10;border-bottom:1px solid #1e2333;margin-bottom:20px}
+</style>
+</head>
+<body>
+<h1>📊 Importar Cartola Mayo 2026</h1>
+<p class="sub">Comercial Diego Sepúlveda SpA · Cta 00-166-23169-10 · Saldo al 19/05/2026: CLP$ 19.483.193</p>
+
+<div class="actions">
+  <button class="btn btn-main" id="btn-ok" onclick="cargarFirebase()">⬆ Cargar todo a Firebase</button>
+  <button class="btn btn-sec" onclick="toggleDetalle()">👁 Ver / ocultar detalle</button>
+  <div class="status" id="status"></div>
+</div>
+
+<div class="grid" id="resumen"></div>
+<div id="detalle" style="display:none"></div>
+
+<script>
+const FB_CFG={apiKey:"AIzaSyArg6b7IT_UB7aQ-dw1SRxgP6rU7dxs9Q8",authDomain:"desit-spa.firebaseapp.com",databaseURL:"https://desit-spa-default-rtdb.firebaseio.com",projectId:"desit-spa",storageBucket:"desit-spa.firebasestorage.app",messagingSenderId:"104975419013",appId:"1:104975419013:web:121a1974b3f4ba7f8c0bec"};
+function uid(){return Date.now()+'_'+Math.random().toString(36).slice(2,6)}
+function fmt(n){return 'CLP$ '+Math.round(n).toLocaleString('es-CL')}
+
+// ──────────────────────────────────────────────────
+// COMPRAS DE STOCK (Cargos a tiendas / proveedores)
+// ──────────────────────────────────────────────────
+const COMPRAS_RAW=[
+  {date:'2026-05-18',store:'DAZBOG',        desc:'Traspaso banco',      total:297490},
+  {date:'2026-05-18',store:'KDTEC',         desc:'Traspaso banco',      total:292068},
+  {date:'2026-05-18',store:'Myshop',        desc:'Traspaso banco',      total:112980},
+  {date:'2026-05-18',store:'INFOR INGEN',   desc:'Traspaso banco',      total:56900},
+  {date:'2026-05-18',store:'PROGAMING',     desc:'Traspaso banco',      total:1679990},
+  {date:'2026-05-18',store:'PCexpress',     desc:'Traspaso banco',      total:131900},
+  {date:'2026-05-15',store:'PCexpress',     desc:'Traspaso banco',      total:643501},
+  {date:'2026-05-15',store:'PROGAMING',     desc:'Traspaso banco',      total:32590},
+  {date:'2026-05-14',store:'Pereira Y Alcantara Spa', desc:'Traspaso banco', total:795598},
+  {date:'2026-05-14',store:'Kepler Spa',    desc:'Traspaso banco',      total:495397},
+  {date:'2026-05-13',store:'Comercial Informatica Spa',desc:'Traspaso banco',total:886111},
+  {date:'2026-05-13',store:'Comercial Informatica Spa',desc:'Traspaso banco',total:4663740},
+  {date:'2026-05-13',store:'CAMPCOM',       desc:'Traspaso banco',      total:1739900},
+  {date:'2026-05-13',store:'Veronica San Martin',desc:'Traspaso banco', total:20976},
+  {date:'2026-05-12',store:'Myshop',        desc:'Traspaso banco',      total:75000},
+  {date:'2026-05-12',store:'Comercializadora Importadora OAC',desc:'Traspaso banco',total:49000},
+  {date:'2026-05-11',store:'PCexpress',     desc:'Traspaso banco',      total:409900},
+  {date:'2026-05-11',store:'Rstech',        desc:'Traspaso banco',      total:2019000},
+  {date:'2026-05-11',store:'Myshop',        desc:'Traspaso banco',      total:359399},
+  {date:'2026-05-11',store:'Rstech',        desc:'Traspaso banco',      total:245800},
+  {date:'2026-05-11',store:'Lioren Enterprises Spa',desc:'Traspaso banco',total:72062},
+  {date:'2026-05-11',store:'DAZBOG',        desc:'Traspaso banco',      total:97980},
+  {date:'2026-05-11',store:'TECNOMAS',      desc:'Traspaso banco',      total:1407980},
+  {date:'2026-05-11',store:'Comercial Informatica Spa',desc:'Traspaso banco',total:489860},
+  {date:'2026-05-08',store:'DIGIPLOT',      desc:'Traspaso banco',      total:123165},
+  {date:'2026-05-08',store:'Pereira Y Alcantara Spa',desc:'Traspaso banco',total:209700},
+  {date:'2026-05-08',store:'Veronica San Martin',desc:'Traspaso banco', total:14990},
+  {date:'2026-05-07',store:'Comercial Informatica Spa',desc:'Traspaso banco',total:11846},
+  {date:'2026-05-07',store:'Comercial Informatica Spa',desc:'Traspaso banco',total:1342346},
+  {date:'2026-05-07',store:'GTC Ribbon S.A.',desc:'Traspaso banco',     total:3828052},
+  {date:'2026-05-07',store:'Comercial Informatica Spa',desc:'Traspaso banco',total:4938343},
+  {date:'2026-05-06',store:'SANDOS',        desc:'Traspaso banco',      total:934000},
+  {date:'2026-05-06',store:'Pereira Y Alcantara Spa',desc:'Traspaso banco',total:4596500},
+  {date:'2026-05-06',store:'PCexpress',     desc:'Traspaso banco',      total:2107582},
+  {date:'2026-05-06',store:'Myshop',        desc:'Traspaso banco',      total:849900},
+  {date:'2026-05-06',store:'CENTRALE',      desc:'Traspaso banco',      total:1399000},
+  {date:'2026-05-06',store:'Comercial Informatica Spa',desc:'Traspaso banco',total:9729415},
+  {date:'2026-05-05',store:'Myshop',        desc:'Traspaso banco',      total:4383759},
+  {date:'2026-05-05',store:'winpy',         desc:'Traspaso banco',      total:695552},
+  {date:'2026-05-05',store:'Rstech',        desc:'Traspaso banco',      total:4861900},
+  {date:'2026-05-05',store:'SANDOS',        desc:'Traspaso banco',      total:2162424},
+  {date:'2026-05-04',store:'Pago Fácil 0191909828',desc:'Pago Fácil BCH',total:480000},
+  {date:'2026-05-04',store:'Pago Fácil 0207822450',desc:'Pago Fácil BCH',total:160000},
+  {date:'2026-05-04',store:'Pago Fácil 0213693670',desc:'Pago Fácil BCH',total:540227},
+  {date:'2026-05-04',store:'Pago Fácil 0181485574',desc:'Pago Fácil BCH',total:551261},
+  {date:'2026-05-18',store:'Pago Fácil 0761319299',desc:'Pago Fácil BCH',total:488786},
+  {date:'2026-05-13',store:'Pago Fácil 0779276562',desc:'Pago Fácil BCH',total:569990},
+];
+
+// ──────────────────────────────────────────────────
+// GASTOS DE GERENCIA
+// ──────────────────────────────────────────────────
+const GASTOS_GERENCIA=[
+  {date:'2026-05-11',desc:'Retiro Diego Sepúlveda',           amount:3000000, tipo:'Otro gasto operativo'},
+  {date:'2026-05-15',desc:'Retiro Diego Sepúlveda',           amount:218545,  tipo:'Otro gasto operativo'},
+  {date:'2026-05-06',desc:'Retiro Diego Sepúlveda',           amount:283809,  tipo:'Otro gasto operativo'},
+  {date:'2026-05-04',desc:'Retiro Diego Sepúlveda',           amount:23020,   tipo:'Otro gasto operativo'},
+  {date:'2026-05-15',desc:'Comisión compras en el exterior',  amount:8850,    tipo:'Otro gasto operativo'},
+  {date:'2026-05-04',desc:'Cargo por pago tarjeta de crédito',amount:987356,  tipo:'Otro gasto operativo'},
+  {date:'2026-05-13',desc:'Traspaso Alexis Michel (trabajador)',amount:35000,  tipo:'Otro gasto operativo'},
+  {date:'2026-05-13',desc:'Traspaso Alexis Michel (trabajador)',amount:30000,  tipo:'Otro gasto operativo'},
+  {date:'2026-05-11',desc:'Traspaso Alexis Michel (trabajador)',amount:50000,  tipo:'Otro gasto operativo'},
+  {date:'2026-05-13',desc:'Traspaso Tiare Cabrera',           amount:300000,  tipo:'Otro gasto operativo'},
+  {date:'2026-05-05',desc:'Traspaso Tiare Cabrera',           amount:518000,  tipo:'Otro gasto operativo'},
+];
+
+// ──────────────────────────────────────────────────
+// GASTOS COSTOS FIJOS
+// ──────────────────────────────────────────────────
+const GASTOS_CF=[
+  {date:'2026-05-11',desc:'Sociedad de Profesionales Simplifie (contabilidad)',amount:1600679,category:'Contabilidad',invoiceNum:'BCH-0568300143'},
+  {date:'2026-05-04',desc:'Sociedad de Profesionales Simplifie (contabilidad)',amount:433948, category:'Contabilidad',invoiceNum:'BCH-0468300143'},
+];
+
+// ──────────────────────────────────────────────────
+// GASTOS MARKETING (Meta Ads)
+// ──────────────────────────────────────────────────
+const GASTOS_MKT=[
+  {date:'2026-05-15',desc:'Meta Ads — Facebk *jgswlmdgb', amount:8876,  invoiceNum:'FB-15052026',category:'Meta Ads'},
+  {date:'2026-05-11',desc:'Meta Ads — Facebk *hszkzlvfb', amount:40715, invoiceNum:'FB-11052026',category:'Meta Ads'},
+  {date:'2026-05-08',desc:'Meta Ads — Facebk *dpljplvfb', amount:40800, invoiceNum:'FB-08052026',category:'Meta Ads'},
+  {date:'2026-05-05',desc:'Meta Ads — Facebk *gqh39lrfb', amount:40331, invoiceNum:'FB-05052026',category:'Meta Ads'},
+  {date:'2026-05-04',desc:'Meta Ads — Facebk *fdelsk5gb', amount:40774, invoiceNum:'FB-04052026',category:'Meta Ads'},
+];
+
+// ──────────────────────────────────────────────────
+// ABONOS — VENTAS / INGRESOS DE CLIENTES
+// ──────────────────────────────────────────────────
+const INGRESOS=[
+  {date:'2026-05-18',name:'Miguel Rosales Vásquez',    amount:1100728},
+  {date:'2026-05-18',name:'Miguel Rosales Vásquez (abono)',amount:600000},
+  {date:'2026-05-18',name:'Matías Pino Castro',        amount:4009990},
+  {date:'2026-05-18',name:'Matías Pino Castro (abono)',amount:500000},
+  {date:'2026-05-18',name:'James Loyola Crisóstomo',   amount:60000},
+  {date:'2026-05-18',name:'Alexis Michel Arredondo',   amount:3300},
+  {date:'2026-05-15',name:'Transbank (e-commerce)',    amount:1265746},
+  {date:'2026-05-15',name:'Astudillo Saavedra Pilar',  amount:1119990},
+  {date:'2026-05-14',name:'Luis Huenchun',             amount:679990},
+  {date:'2026-05-14',name:'Luis Huenchun (abono)',     amount:100000},
+  {date:'2026-05-13',name:'Astudillo Saavedra Pilar (abono)',amount:200000},
+  {date:'2026-05-13',name:'Christian Martí',           amount:799990},
+  {date:'2026-05-12',name:'Christian Martí (abono)',   amount:350000},
+  {date:'2026-05-12',name:'Luzmary Flores Ramírez',    amount:1581000},
+  {date:'2026-05-11',name:'Dagly Leyton Salas',        amount:1429990},
+  {date:'2026-05-11',name:'Transbank / Proveedores',   amount:1192052},
+  {date:'2026-05-07',name:'Transbank / Proveedores',   amount:1515202},
+  {date:'2026-05-06',name:'Juan Manríquez Vargas',     amount:1099990},
+  {date:'2026-05-06',name:'Transbank / Proveedores',   amount:1038465},
+  {date:'2026-05-05',name:'Torres Salazar Estefani',   amount:1499990},
+  {date:'2026-05-04',name:'Torres Salazar Estefani (abono)',amount:100000},
+  {date:'2026-05-04',name:'Matías Beltrán Zamorano',   amount:1579990},
+  {date:'2026-05-04',name:'Marcelo Brante Concha',     amount:1400000},
+  {date:'2026-05-04',name:'Transbank / Proveedores',   amount:35496},
+];
+
+// ──────────────────────────────────────────────────
+// CONSTRUIR ESTADO
+// ──────────────────────────────────────────────────
+function buildState(){
+  const compras=COMPRAS_RAW.map(c=>({
+    id:uid(),date:c.date,
+    invoiceNum:'BCH-'+c.date.replace(/-/g,'')+'-'+c.store.replace(/\s+/g,'').slice(0,6).toUpperCase(),
+    store:c.store,
+    items:[{id:uid(),type:'Stock',name:c.desc+' — '+c.store,qty:1,cost:c.total}],
+    total:c.total
+  }));
+
+  const gastosGerencia=GASTOS_GERENCIA.map(g=>({
+    id:uid(),date:g.date,desc:g.desc,amount:g.amount,
+    tipo:g.tipo,docNum:'',category:'Operacional'
+  }));
+
+  const gastosCF=GASTOS_CF.map(g=>({
+    id:uid(),date:g.date,desc:g.desc,amount:g.amount,
+    category:g.category,invoiceNum:g.invoiceNum
+  }));
+
+  const gastosMkt=GASTOS_MKT.map(g=>({
+    id:uid(),date:g.date,desc:g.desc,amount:g.amount,
+    invoiceNum:g.invoiceNum,category:g.category
+  }));
+
+  // Ventas: cada ingreso de cliente como venta completada
+  const ventas=INGRESOS.map(v=>({
+    id:uid(),name:v.name,phone:'',date:v.date,notes:'Registrado desde cartola bancaria mayo 2026',
+    estado:'completada',invoiceType:'sin_documento',invoiceNum:'',
+    parts:[{id:uid(),cat:'PC base',type:'PC Armado',name:v.name,ph:'',
+            cost:Math.round(v.amount/1.2),margin:20,qty:1,store:''}]
+  }));
+
+  const state={
+    pins:{gerencia:'1234',finanzas:'1234',ventas:'1234'},
+    capital:60000000,
+    mktBudgets:{'2026-05':200000},
+    stores:['PCFactory','megabytes','Myshop','Rstech','Nice one','PCexpress','winpy','Megadrrive','DAZBOG','PROGAMING','DUST2','EYLSTORE','SANDOS','SIPO','TECNOMAS','UGS','CENTRALGAMER','CENTRALE','SP DIGITAL','CAFE DIGITAL','TRULU STORE','DIGIPLOT','GIGABYTE','INVASION GAMER','CAMPCOM','MERCADO STORE','INFOR INGEN','KDTEC'],
+    inventory:[],
+    packs:[],
+    ventas,
+    compras,
+    gastos:{gerencia:gastosGerencia,costosFijos:gastosCF,marketing:gastosMkt},
+    campaigns:[],
+    mktLoans:[]
+  };
+  return state;
+}
+
+// ──────────────────────────────────────────────────
+// RENDER RESUMEN
+// ──────────────────────────────────────────────────
+const totalCompras=COMPRAS_RAW.reduce((a,c)=>a+c.total,0);
+const totalGerencia=GASTOS_GERENCIA.reduce((a,g)=>a+g.amount,0);
+const totalCF=GASTOS_CF.reduce((a,g)=>a+g.amount,0);
+const totalMkt=GASTOS_MKT.reduce((a,g)=>a+g.amount,0);
+const totalIngresos=INGRESOS.reduce((a,v)=>a+v.amount,0);
+const totalCargos=totalCompras+totalGerencia+totalCF+totalMkt;
+
+document.getElementById('resumen').innerHTML=`
+  <div class="kpi"><div class="kpi-l">Ingresos clientes</div><div class="kpi-v" style="color:#22c97a">${fmt(totalIngresos)}</div></div>
+  <div class="kpi"><div class="kpi-l">Compras de stock</div><div class="kpi-v" style="color:#ff5b5b">${fmt(totalCompras)}</div></div>
+  <div class="kpi"><div class="kpi-l">Gastos gerencia</div><div class="kpi-v" style="color:#ff5b5b">${fmt(totalGerencia)}</div></div>
+  <div class="kpi"><div class="kpi-l">Costos fijos</div><div class="kpi-v" style="color:#ff5b5b">${fmt(totalCF)}</div></div>
+  <div class="kpi"><div class="kpi-l">Marketing (Meta Ads)</div><div class="kpi-v" style="color:#f5a623">${fmt(totalMkt)}</div></div>
+  <div class="kpi"><div class="kpi-l">Registros a importar</div><div class="kpi-v" style="color:#5b7fff">${COMPRAS_RAW.length+GASTOS_GERENCIA.length+GASTOS_CF.length+GASTOS_MKT.length+INGRESOS.length}</div></div>
+`;
+
+function row(date,desc,amt,tipo){
+  const cl=tipo==='cargo'?'cargo':'abono';
+  const prefix=tipo==='cargo'?'−':'+';
+  return`<div class="row"><div class="row-date">${date.slice(5).replace('-','/')}</div><div><div class="row-desc">${desc}</div></div><div class="row-amt ${cl}">${prefix} ${fmt(amt)}</div></div>`;
+}
+document.getElementById('detalle').innerHTML=`
+  <div class="section">Compras de stock <span class="count">${COMPRAS_RAW.length} movimientos · ${fmt(totalCompras)}</span></div>
+  ${COMPRAS_RAW.map(c=>row(c.date,c.store+' — '+c.desc,c.total,'cargo')).join('')}
+  <div class="section">Gastos gerencia <span class="count">${GASTOS_GERENCIA.length} movimientos · ${fmt(totalGerencia)}</span></div>
+  ${GASTOS_GERENCIA.map(g=>row(g.date,g.desc,g.amount,'cargo')).join('')}
+  <div class="section">Costos fijos <span class="count">${GASTOS_CF.length} movimientos · ${fmt(totalCF)}</span></div>
+  ${GASTOS_CF.map(g=>row(g.date,g.desc,g.amount,'cargo')).join('')}
+  <div class="section">Marketing — Meta Ads <span class="count">${GASTOS_MKT.length} movimientos · ${fmt(totalMkt)}</span></div>
+  ${GASTOS_MKT.map(g=>row(g.date,g.desc,g.amount,'cargo')).join('')}
+  <div class="section">Ingresos de clientes <span class="count">${INGRESOS.length} movimientos · ${fmt(totalIngresos)}</span></div>
+  ${INGRESOS.map(v=>row(v.date,v.name,v.amount,'abono')).join('')}
+`;
+
+function toggleDetalle(){
+  const d=document.getElementById('detalle');
+  d.style.display=d.style.display==='none'?'block':'none';
+}
+
+function showStatus(msg,type){
+  const el=document.getElementById('status');
+  el.textContent=msg;el.className='status '+type;el.style.display='block';
+}
+
+function cargarFirebase(){
+  const btn=document.getElementById('btn-ok');
+  btn.disabled=true;btn.textContent='Conectando...';
+  showStatus('Conectando a Firebase...','warn');
+  try{
+    firebase.initializeApp(FB_CFG);
+    const ref=firebase.database().ref('desit_spa_data');
+    btn.textContent='Cargando datos...';
+    const state=buildState();
+    ref.set(state).then(()=>{
+      showStatus(`✅ ¡Listo! ${COMPRAS_RAW.length} compras, ${GASTOS_GERENCIA.length+GASTOS_CF.length+GASTOS_MKT.length} gastos y ${INGRESOS.length} ingresos cargados. Abre index.html para ver el dashboard.`,'ok');
+      btn.textContent='✓ Cargado';
+    }).catch(err=>{
+      showStatus('Error Firebase: '+err.message,'err');
+      btn.disabled=false;btn.textContent='⬆ Reintentar';
+    });
+  }catch(e){
+    showStatus('Error: '+e.message,'err');
+    btn.disabled=false;btn.textContent='⬆ Reintentar';
+  }
+}
+</script>
+</body>
+</html>
