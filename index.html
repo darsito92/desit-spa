@@ -759,7 +759,7 @@ function allTimeBalance(){
   return{ingresos,gastosTotal,comprasTotal,balance:state.capital+ingresos-gastosTotal-comprasTotal};
 }
 
-let activePk=null,activeVenta=null,curPage='',dashMonth=todayStr().slice(0,7),gastosTab='gerencia',editingInvId=null,editingInvData={},editingGastoId=null,editingGastoTipo=null,editingGastoData={},editingCompraId=null,editingCompraData={},newInv={type:'',name:'',qty:1,cost:0,store:''},newCompra={date:todayStr(),invoiceNum:'',store:'',items:[]},newLoan={date:todayStr(),desc:'',items:[]};
+let activePk=null,activeVenta=null,curPage='',dashMonth=todayStr().slice(0,7),gastosTab='gerencia',editingInvId=null,editingInvData={},editingGastoId=null,editingGastoTipo=null,editingGastoData={},editingCompraId=null,editingCompraData={},newInv={type:'',name:'',qty:1,cost:0,store:'',barcode:''},newCompra={date:todayStr(),invoiceNum:'',store:'',items:[]},newLoan={date:todayStr(),desc:'',items:[]};
 
 // ═══════════════════════════════════════
 // PAGE SWITCH
@@ -1269,13 +1269,14 @@ function renderInventory(){
         <td><input class="fi" type="number" min="0" value="${editingInvData.cost!=null?editingInvData.cost:item.cost}" oninput="editingInvData.cost=this.value" style="width:90px;font-size:12px;text-align:right"></td>
         <td><select class="fi-sel" oninput="editingInvData.type=this.value" style="font-size:12px;width:100%"><option value="">— Tipo —</option>${typeList.map(t=>`<option value="${t}" ${(editingInvData.type!=null?editingInvData.type:item.type)===t?'selected':''}>${t}</option>`).join('')}<option value="Otro" ${(editingInvData.type!=null?editingInvData.type:item.type)==='Otro'?'selected':''}>Otro</option></select></td>
         <td><select class="fi-sel" oninput="editingInvData.store=this.value" style="font-size:12px;width:100%"><option value="">— Sin tienda —</option>${stores.map(s=>`<option value="${s}" ${(editingInvData.store!=null?editingInvData.store:item.store)===s?'selected':''}>${s}</option>`).join('')}</select></td>
-        <td><input class="fi" value="${(editingInvData.invoiceNum!=null?editingInvData.invoiceNum:item.invoiceNum||'').replace(/"/g,'&quot;')}" oninput="editingInvData.invoiceNum=this.value" placeholder="N° Factura" style="font-size:11px;width:100%;color:var(--tx3)"></td>
+        <td><input class="fi" list="inv-compras-dl" value="${(editingInvData.invoiceNum!=null?editingInvData.invoiceNum:item.invoiceNum||'').replace(/"/g,'&quot;')}" oninput="editingInvData.invoiceNum=this.value;const _c=compras.find(x=>x.invoiceNum===this.value);if(_c&&!editingInvData.store)editingInvData.store=_c.store||''" placeholder="N° Factura o elige ▾" style="font-size:11px;width:100%;color:var(--tx3)"><datalist id="inv-compras-dl">${compras.map(c=>`<option value="${c.invoiceNum}">${c.invoiceNum} · ${fmtDate(c.date)}${c.store?' · '+c.store:''}</option>`).join('')}</datalist></td>
+        <td><input class="fi" value="${(editingInvData.barcode!=null?editingInvData.barcode:item.barcode||'').replace(/"/g,'&quot;')}" oninput="editingInvData.barcode=this.value" placeholder="Cód. barra" style="font-size:11px;width:100%"></td>
         <td style="text-align:right;white-space:nowrap"><button type="button" class="btn-sm" style="border-color:var(--ac);color:var(--ac);margin-right:4px" onclick="invSaveEdit('${item.id}')">✓</button><button type="button" class="btn-sm" onclick="invCancelEdit()">✕</button></td>
       </tr>`;
       const qcls=item.qty===0?'stock-zero':item.qty<=2?'stock-low':'stock-ok';
       const badge=item.qty===0?`<span class="badge-zero">Sin stock</span>`:item.qty<=2?`<span class="badge-low">Bajo</span>`:'';
       const col=storeColor(item.store);
-      return`<tr><td class="bo">${item.name}${item.invoiceNum?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">📄 ${item.invoiceNum}</div>`:''}</td>
+      return`<tr><td class="bo">${item.name}${item.invoiceNum?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">📄 ${item.invoiceNum}</div>`:''}${item.barcode?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">▦ ${item.barcode}</div>`:''}</td>
         <td><div class="qty-ctrl"><button type="button" class="qty-btn" onclick="invQty('${item.id}',-1)">−</button><span class="qty-num ${qcls}">${item.qty}</span><button type="button" class="qty-btn" onclick="invQty('${item.id}',1)">+</button>${badge}</div></td>
         <td class="tr bo">${fmt(item.cost)}</td>
         <td>${item.store?`<span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${col}"></span>${item.store}</span>`:'<span class="mu">—</span>'}</td>
@@ -1303,12 +1304,13 @@ function renderInventory(){
     </div>
     <div class="card" style="margin-bottom:18px">
       <div class="fl" style="margin-bottom:10px">Agregar producto</div>
-      <div style="display:grid;grid-template-columns:130px 1fr 70px 110px 150px auto;gap:8px;align-items:end">
+      <div style="display:grid;grid-template-columns:130px 1fr 70px 110px 150px 130px auto;gap:8px;align-items:end">
         <div class="fg"><div class="fl">Tipo / Categoría</div><select class="fi-sel" id="inv-type" oninput="newInv.type=this.value"><option value="">— Tipo —</option>${typeList.map(t=>`<option value="${t}">${t}</option>`).join('')}<option value="Otro">Otro</option></select></div>
         <div class="fg"><div class="fl">Nombre</div><input class="fi" id="inv-name" placeholder="Ej: Kingston 16GB DDR5" oninput="newInv.name=this.value"></div>
         <div class="fg"><div class="fl">Cant.</div><input class="fi" type="number" id="inv-qty" min="1" value="1" oninput="newInv.qty=parseInt(this.value)||1"></div>
         <div class="fg"><div class="fl">Costo unit.</div><input class="fi" type="number" id="inv-cost" min="0" placeholder="0" oninput="newInv.cost=parseFloat(this.value)||0"></div>
         <div class="fg"><div class="fl">Tienda</div><select class="fi-sel" id="inv-store" oninput="newInv.store=this.value"><option value="">— Sin tienda —</option>${stores.map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>
+        <div class="fg"><div class="fl">Cód. barra</div><input class="fi" id="inv-barcode" placeholder="Opcional" oninput="newInv.barcode=this.value"></div>
         <div class="fg"><div class="fl" style="opacity:0">.</div><button class="btn-h btn-ac" onclick="invAdd()" style="height:32px">+</button></div>
       </div>
     </div>
@@ -1321,10 +1323,10 @@ function invAdd(){
   const type=document.getElementById('inv-type').value;
   const ex=inventory.find(i=>i.name.toLowerCase()===name.toLowerCase()&&(i.type===type||!type));
   if(ex){const nq=newInv.qty||1,nc=newInv.cost||0;ex.cost=ex.qty+nq>0?(ex.qty*ex.cost+nq*nc)/(ex.qty+nq):nc;ex.qty+=nq;if(newInv.store)ex.store=newInv.store}
-  else inventory.push({id:uid(),type:type||'Otro',name,qty:newInv.qty||1,cost:newInv.cost||0,store:newInv.store||''});
-  ['inv-type','inv-name','inv-store'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
+  else inventory.push({id:uid(),type:type||'Otro',name,qty:newInv.qty||1,cost:newInv.cost||0,store:newInv.store||'',barcode:newInv.barcode||''});
+  ['inv-type','inv-name','inv-store','inv-barcode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
   ['inv-qty','inv-cost'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.value=i===0?1:0});
-  newInv={type:'',name:'',qty:1,cost:0,store:''};S();renderInventory();updateBadges();
+  newInv={type:'',name:'',qty:1,cost:0,store:'',barcode:''};S();renderInventory();updateBadges();
 }
 function invEdit(id){
   const item=inventory.find(i=>i.id===id);if(!item)return;
@@ -1343,6 +1345,7 @@ function invSaveEdit(id){
   item.qty=Math.max(0,parseInt(d.qty)||0);
   item.cost=parseFloat(d.cost)||0;
   item.invoiceNum=d.invoiceNum!=null?d.invoiceNum:oldInv;
+  item.barcode=d.barcode!=null?d.barcode:(item.barcode||'');
   item.store=d.store!=null?d.store:oldStore;
   // Propagar tienda a todos los items de la misma factura
   const factura=item.invoiceNum||oldInv;
@@ -1359,7 +1362,7 @@ function invSaveEdit(id){
 function invDel(id){if(!confirm('¿Eliminar?'))return;inventory=inventory.filter(i=>i.id!==id);S();renderInventory();updateBadges()}
 function invQty(id,d){const item=inventory.find(i=>i.id===id);if(!item)return;item.qty=Math.max(0,item.qty+d);S();renderInventory();updateBadges()}
 function invExportJSON(){const blob=new Blob([JSON.stringify({version:1,exportDate:new Date().toISOString(),stores,inventory},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='inventario_desit_'+todayStr()+'.json';a.click()}
-function invExportCSV(){const rows=[['tipo','nombre','cantidad','costo','tienda'],...inventory.map(i=>[i.type,`"${(i.name||'').replace(/"/g,'""')}"`,i.qty,i.cost,i.store])];const blob=new Blob(['\uFEFF'+rows.map(r=>r.join(',')).join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='inventario_desit_'+todayStr()+'.csv';a.click()}
+function invExportCSV(){const rows=[['tipo','nombre','cantidad','costo','tienda','codigo_barra'],...inventory.map(i=>[i.type,`"${(i.name||'').replace(/"/g,'""')}"`,i.qty,i.cost,i.store,`"${(i.barcode||'').replace(/"/g,'""')}"`])];const blob=new Blob(['\uFEFF'+rows.map(r=>r.join(',')).join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='inventario_desit_'+todayStr()+'.csv';a.click()}
 function invImport(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
