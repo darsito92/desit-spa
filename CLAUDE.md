@@ -18,7 +18,11 @@ Repositorio: https://github.com/darsito92/desit-spa (rama `main`)
 - Estado global: objeto `state` sincronizado con Firebase vía `fbRef.set(state)`
 - Función de guardado: `S()` — debounce 600 ms, llama a Firebase y `saveLocalBackup()`
 - localStorage como fallback offline (`desit_spa_local`)
-- Roles: `gerencia`, `finanzas`, `ventas` — cada uno con PIN y tabs habilitados
+- Usuarios nombrados: `diego` (gerencia), `veronica` (finanzas), `alexis` (gerencia) — cada uno con contraseña propia
+- Roles: `gerencia` (todos los tabs), `finanzas` (todos excepto Config) — rol `ventas` eliminado
+- Verónica (finanzas) puede agregar/eliminar tiendas
+- `logAction(desc)` registra movimientos en `state.historial` con timestamp y usuario activo
+- `currentUser` guarda el nombre del usuario logueado; `currentRole` su rol
 
 ## Módulos principales
 | Página | ID | Función de render |
@@ -54,9 +58,13 @@ Repositorio: https://github.com/darsito92/desit-spa (rama `main`)
 
 ## Flujo de trabajo habitual
 1. Editar `index.html`
-2. `git add index.html && git commit -m "..."` 
-3. `git push origin main`
-4. GitHub Pages actualiza en ~1-2 minutos
+2. **Antes de cada commit/push: hacer backup de Firebase primero:**
+   ```bash
+   curl -s "https://desit-spa-default-rtdb.firebaseio.com/desit_spa_data.json" -o "backup_datos_YYYYMMDD.json"
+   ```
+3. `git add index.html && git commit -m "..."` 
+4. `git push origin main`
+5. GitHub Pages actualiza en ~1-2 minutos
 
 ## Convenciones del código
 - Nombres de función cortos: `S()` guarda, `fmt()` formatea moneda, `uid()` genera ID
