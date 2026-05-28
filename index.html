@@ -927,7 +927,12 @@ function confirmComplete(){
   v.estado='completada';
   v.invoiceType=document.getElementById('inv-type-sel').value;
   v.invoiceNum=document.getElementById('inv-num-inp').value.trim();
-  S();closeModal('invoice-modal');renderVentas();updateBadges();
+  v.parts.forEach(p=>{
+    if(!p.name)return;
+    const inv=inventory.find(i=>i.name.toLowerCase()===p.name.toLowerCase());
+    if(inv)inv.qty=Math.max(0,inv.qty-(Math.max(1,parseInt(p.qty)||1)));
+  });
+  S();closeModal('invoice-modal');renderVentas();renderInventory();updateBadges();
   if(curPage==='dash')renderDash();
 }
 
@@ -1200,7 +1205,6 @@ function applySugg(pid,invId,ctx){
   if(!parts)return;
   const part=parts.find(p=>p.id===pid);if(!part)return;
   part.name=item.name;part.cost=item.cost;if(item.store)part.store=item.store;
-  if(item.qty>0)item.qty=Math.max(0,item.qty-(part.qty||1));
   S();
   if(ctx==='v'){renderVentasMain();renderPanel('v-panel',getActiveVenta()?.parts||[])}
   else{renderPacksMain();renderPanel('pk-panel',getActivePack()?.parts||[])}
