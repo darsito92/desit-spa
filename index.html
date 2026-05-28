@@ -185,24 +185,24 @@ input[type=number]::-webkit-inner-spin-button{opacity:.4}
   <div class="bg-sf border border-bd rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl">
     <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black text-white mx-auto mb-4" style="background:linear-gradient(135deg,#2d4fff,#5b7fff)">D</div>
     <div class="text-2xl font-bold text-tx mb-1">Desit SPA</div>
-    <div class="text-sm text-tx3 mb-7">Selecciona tu rol e ingresa tu PIN</div>
+    <div class="text-sm text-tx3 mb-7">Selecciona tu usuario e ingresa tu contraseña</div>
     <div class="grid grid-cols-3 gap-2 mb-5" id="role-btns">
-      <div class="role-btn border border-bd rounded-xl py-3 px-2 bg-sf2 text-tx2 text-xs font-semibold cursor-pointer text-center transition-all hover:border-ac hover:text-ac hover:bg-acbg" onclick="selectRole('gerencia',this)">
-        <span class="text-lg block mb-1">👔</span>Gerencia
+      <div class="role-btn border border-bd rounded-xl py-3 px-2 bg-sf2 text-tx2 text-xs font-semibold cursor-pointer text-center transition-all hover:border-ac hover:text-ac hover:bg-acbg" onclick="selectUser('diego',this)">
+        <span class="text-lg block mb-1">👔</span>Diego
       </div>
-      <div class="role-btn border border-bd rounded-xl py-3 px-2 bg-sf2 text-tx2 text-xs font-semibold cursor-pointer text-center transition-all hover:border-ac hover:text-ac hover:bg-acbg" onclick="selectRole('finanzas',this)">
-        <span class="text-lg block mb-1">💰</span>Finanzas
+      <div class="role-btn border border-bd rounded-xl py-3 px-2 bg-sf2 text-tx2 text-xs font-semibold cursor-pointer text-center transition-all hover:border-ac hover:text-ac hover:bg-acbg" onclick="selectUser('veronica',this)">
+        <span class="text-lg block mb-1">💰</span>Verónica
       </div>
-      <div class="role-btn border border-bd rounded-xl py-3 px-2 bg-sf2 text-tx2 text-xs font-semibold cursor-pointer text-center transition-all hover:border-ac hover:text-ac hover:bg-acbg" onclick="selectRole('ventas',this)">
-        <span class="text-lg block mb-1">💼</span>Ventas
+      <div class="role-btn border border-bd rounded-xl py-3 px-2 bg-sf2 text-tx2 text-xs font-semibold cursor-pointer text-center transition-all hover:border-ac hover:text-ac hover:bg-acbg" onclick="selectUser('alexis',this)">
+        <span class="text-lg block mb-1">👔</span>Alexis
       </div>
     </div>
     <div class="flex flex-col gap-2">
-      <input class="bg-sf3 border border-bd text-tx rounded-xl px-4 py-3 text-xl outline-none text-center tracking-widest focus:border-ac transition-colors" type="password" id="login-pin" placeholder="PIN" maxlength="6" onkeydown="if(event.key==='Enter')doLogin()">
+      <input class="bg-sf3 border border-bd text-tx rounded-xl px-4 py-3 text-xl outline-none text-center tracking-widest focus:border-ac transition-colors" type="password" id="login-pin" placeholder="Contraseña" maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
       <button class="bg-ac text-white font-semibold py-3 rounded-xl cursor-pointer hover:opacity-90 transition-opacity text-sm" onclick="doLogin()">Ingresar →</button>
     </div>
     <div class="text-red-400 text-xs mt-2 min-h-[18px]" id="login-err"></div>
-    <div class="text-tx3 text-xs mt-4">Primera vez: usa PIN <b class="text-tx2">1234</b></div>
+    <div class="text-tx3 text-xs mt-4">Primera vez: contraseña <b class="text-tx2">1234</b></div>
   </div>
 </div>
 
@@ -347,8 +347,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.4}
 // ═══════════════════════════════════════
 const ROLE_TABS={
   gerencia: ['dash','ventas','packs','inventario','finanzas','gastos','logistica','config'],
-  finanzas: ['dash','ventas','inventario','finanzas','gastos','logistica'],
-  ventas:   ['ventas','packs','inventario','logistica']
+  finanzas: ['dash','ventas','packs','inventario','finanzas','gastos','logistica']
 };
 const TAB_LABELS={
   dash:'📊 Dashboard', ventas:'💼 Ventas', packs:'📦 Packs',
@@ -358,24 +357,27 @@ const TAB_LABELS={
 const SC=['#5b7fff','#22c97a','#f5a623','#ff5b5b','#a855f7','#06b6d4','#ec4899','#84cc16'];
 function storeColor(n){const i=stores.indexOf(n);return i>=0?SC[i%SC.length]:'#555e80'}
 
-let currentRole=null,selectedRoleLogin=null,pendingCompleteId=null;
+let currentRole=null,currentUser=null,selectedUserLogin=null,pendingCompleteId=null;
+const USER_LABELS={diego:'👔 Diego',veronica:'💰 Verónica',alexis:'👔 Alexis'};
 
-function selectRole(r,el){
-  selectedRoleLogin=r;
-  document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('selected','!border-ac','!text-ac','!bg-acbg'));
+function selectUser(u,el){
+  selectedUserLogin=u;
+  document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('!border-ac','!text-ac','!bg-acbg'));
   el.classList.add('!border-ac','!text-ac','!bg-acbg');
   document.getElementById('login-pin').focus();
   document.getElementById('login-err').textContent='';
 }
 function doLogin(){
-  if(!selectedRoleLogin){document.getElementById('login-err').textContent='Selecciona un rol.';return}
-  const pin=document.getElementById('login-pin').value;
-  const stored=state.pins[selectedRoleLogin]||'1234';
-  if(pin!==stored){document.getElementById('login-err').textContent='PIN incorrecto.';return}
-  currentRole=selectedRoleLogin;
+  if(!selectedUserLogin){document.getElementById('login-err').textContent='Selecciona un usuario.';return}
+  const pwd=document.getElementById('login-pin').value;
+  const userData=state.users[selectedUserLogin]||{pwd:'1234',role:'gerencia'};
+  if(pwd!==userData.pwd){document.getElementById('login-err').textContent='Contraseña incorrecta.';return}
+  currentUser=selectedUserLogin;
+  currentRole=userData.role;
+  logAction('Inicio de sesión');
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-header').style.display='flex';
-  document.getElementById('role-pill').textContent={gerencia:'👔 Gerencia',finanzas:'💰 Finanzas',ventas:'💼 Ventas'}[currentRole];
+  document.getElementById('role-pill').textContent=USER_LABELS[currentUser]||currentUser;
   buildNav();
   sp(ROLE_TABS[currentRole][0]);
 }
@@ -399,7 +401,8 @@ function sp(id){
   setTimeout(()=>wrapTables('page-'+id),0);
 }
 function logout(){
-  currentRole=null;selectedRoleLogin=null;curPage='';
+  if(currentUser)logAction('Cierre de sesión');
+  currentRole=null;currentUser=null;selectedUserLogin=null;curPage='';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('main-header').style.display='none';
   document.getElementById('login-pin').value='';
@@ -646,12 +649,18 @@ function setSyncStatus(status,msg){
 }
 function updateSyncTime(){const el=document.getElementById('sync-time');if(el&&lastSyncTime)el.textContent='Sync: '+lastSyncTime.toLocaleTimeString('es-CL')}
 function saveLocalBackup(){try{localStorage.setItem('desit_spa_local',JSON.stringify(state))}catch(e){}}
+function logAction(desc){
+  if(!state.historial)state.historial=[];
+  state.historial.unshift({ts:new Date().toISOString(),user:currentUser||'—',action:desc});
+  if(state.historial.length>500)state.historial=state.historial.slice(0,500);
+}
 
 // ═══════════════════════════════════════
 // STATE + PERSISTENCE
 // ═══════════════════════════════════════
 const DEFAULT_STATE={
-  pins:{gerencia:'1234',finanzas:'1234',ventas:'1234'},
+  users:{diego:{pwd:'1234',role:'gerencia'},veronica:{pwd:'1234',role:'finanzas'},alexis:{pwd:'1234',role:'gerencia'}},
+  historial:[],
   capital:60_000_000,
   mktBudgets:{}, // {YYYY-MM: amount}
   stores:['PCFactory','MercadoLibre','Falabella','París'],
@@ -673,13 +682,14 @@ function initApp(remoteData){
     if(remoteData){
       state={...DEFAULT_STATE,...remoteData};
       state.gastos={...DEFAULT_STATE.gastos,...(remoteData.gastos||{})};
-      state.pins={...DEFAULT_STATE.pins,...(remoteData.pins||{})};
+      state.users={...DEFAULT_STATE.users,...(remoteData.users||{})};
     } else if(localBackup){
       const saved=JSON.parse(localBackup);
       state={...DEFAULT_STATE,...saved};
       state.gastos={...DEFAULT_STATE.gastos,...(saved.gastos||{})};
-      state.pins={...DEFAULT_STATE.pins,...(saved.pins||{})};
+      state.users={...DEFAULT_STATE.users,...(saved.users||{})};
     }
+    if(!Array.isArray(state.historial))state.historial=[];
     if(!state.packs||!state.packs.length)state.packs=[makePack('Pack Estándar'),makePack('Pack Gamer Pro')];
     if(!state.ventas||!state.ventas.length)state.ventas=[makeVenta('Cliente demo')];
     if(!Array.isArray(state.mktLoans))state.mktLoans=[];
@@ -924,6 +934,7 @@ function vfEstado(val){
 }
 function confirmComplete(){
   const v=ventas.find(x=>x.id===pendingCompleteId);if(!v)return;
+  logAction(`Venta completada: "${v.name}" — ${fmt(Math.round(totals(v.parts).ts))}`);
   v.estado='completada';
   v.invoiceType=document.getElementById('inv-type-sel').value;
   v.invoiceNum=document.getElementById('inv-num-inp').value.trim();
@@ -959,7 +970,7 @@ function renderPacksSB(){
     el.appendChild(d);
   });
   const nb=document.createElement('button');nb.className='btn-sb';nb.textContent='+ Nuevo pack';
-  nb.onclick=()=>{const p=makePack('Nuevo pack '+(packs.length+1));packs.push(p);activePk=p.id;S();renderPacks()};
+  nb.onclick=()=>{const p=makePack('Nuevo pack '+(packs.length+1));packs.push(p);activePk=p.id;logAction('Pack creado: "'+p.label+'"');S();renderPacks()};
   el.appendChild(nb);
   const imp=document.createElement('label');imp.className='btn-sb';imp.style.cssText='display:block;text-align:center;cursor:pointer;margin-top:4px';imp.innerHTML='⬆ Importar Shopify CSV<input type="file" accept=".csv" style="display:none" onchange="shopifyImport(this)">';
   el.appendChild(imp);
@@ -973,7 +984,7 @@ function renderPacksMain(){
   );
 }
 function pfSet(pid,f,v){const pk=getActivePack();if(!pk)return;setField(pk.parts,pid,f,v);lightUpdate(pk.parts,pid);renderPanel('pk-panel',pk.parts);S()}
-function pfDel(pid){if(pid){const pk=getActivePack();if(pk){pk.parts=pk.parts.filter(x=>x.id!==pid);S();renderPacksMain();renderPanel('pk-panel',pk.parts)}}else{if(packs.length<=1){alert('Debe quedar al menos un pack.');return}packs=packs.filter(p=>p.id!==activePk);activePk=packs[0].id;S();renderPacks()}}
+function pfDel(pid){if(pid){const pk=getActivePack();if(pk){pk.parts=pk.parts.filter(x=>x.id!==pid);S();renderPacksMain();renderPanel('pk-panel',pk.parts)}}else{if(packs.length<=1){alert('Debe quedar al menos un pack.');return}const pk=getActivePack();logAction('Pack eliminado: "'+(pk?.label||'')+'\"');packs=packs.filter(p=>p.id!==activePk);activePk=packs[0].id;S();renderPacks()}}
 function pfAdd(cat){const pk=getActivePack();if(pk){pk.parts.push(makePart({cat,name:'Componente',ph:'Nombre'}));S();renderPacksMain()}}
 function pfName(val){const pk=getActivePack();if(pk){pk.label=val;S();updateSbName('pk-sb',pk.id,val,'pk')}}
 
@@ -1330,7 +1341,7 @@ function invAdd(){
   else inventory.push({id:uid(),type:type||'Otro',name,qty:newInv.qty||1,cost:newInv.cost||0,store:newInv.store||'',barcode:newInv.barcode||''});
   ['inv-type','inv-name','inv-store','inv-barcode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
   ['inv-qty','inv-cost'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.value=i===0?1:0});
-  newInv={type:'',name:'',qty:1,cost:0,store:'',barcode:''};S();renderInventory();updateBadges();
+  newInv={type:'',name:'',qty:1,cost:0,store:'',barcode:''};logAction('Inventario: agregado "'+name+'" ×'+(newInv.qty||1));S();renderInventory();updateBadges();
 }
 function invEdit(id){
   const item=inventory.find(i=>i.id===id);if(!item)return;
@@ -1361,9 +1372,9 @@ function invSaveEdit(id){
       if(cp&&item.store)cp.store=item.store;
     }
   }
-  editingInvId=null;editingInvData={};S();renderInventory();updateBadges();
+  editingInvId=null;editingInvData={};logAction('Inventario: editado "'+item.name+'"');S();renderInventory();updateBadges();
 }
-function invDel(id){if(!confirm('¿Eliminar?'))return;inventory=inventory.filter(i=>i.id!==id);S();renderInventory();updateBadges()}
+function invDel(id){if(!confirm('¿Eliminar?'))return;const it=inventory.find(i=>i.id===id);logAction('Inventario: eliminado "'+(it?.name||id)+'"');inventory=inventory.filter(i=>i.id!==id);S();renderInventory();updateBadges()}
 function invQty(id,d){const item=inventory.find(i=>i.id===id);if(!item)return;item.qty=Math.max(0,item.qty+d);S();renderInventory();updateBadges()}
 function invExportJSON(){const blob=new Blob([JSON.stringify({version:1,exportDate:new Date().toISOString(),stores,inventory},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='inventario_desit_'+todayStr()+'.json';a.click()}
 function invExportCSV(){const rows=[['tipo','nombre','cantidad','costo','tienda','codigo_barra'],...inventory.map(i=>[i.type,`"${(i.name||'').replace(/"/g,'""')}"`,i.qty,i.cost,i.store,`"${(i.barcode||'').replace(/"/g,'""')}"`])];const blob=new Blob(['\uFEFF'+rows.map(r=>r.join(',')).join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='inventario_desit_'+todayStr()+'.csv';a.click()}
@@ -1475,7 +1486,7 @@ function guardarCompra(){
     if(ex){const nq=ci.qty,nc=ci.cost;ex.cost=ex.qty+nq>0?(ex.qty*ex.cost+nq*nc)/(ex.qty+nq):nc;ex.qty+=nq}
     else inventory.push({id:uid(),type:ci.type||'Otro',name:ci.name,qty:ci.qty,cost:ci.cost,store:compra.store||''});
   });
-  compras.push(compra);newCompra={date:todayStr(),invoiceNum:'',store:'',items:[]};
+  compras.push(compra);logAction('Compra registrada: factura '+compra.invoiceNum+' — '+fmt(compra.total||0)+(compra.store?' ('+compra.store+')':''));newCompra={date:todayStr(),invoiceNum:'',store:'',items:[]};
   S();renderFinanzas();renderInventory();updateBadges();if(curPage==='dash')renderDash();
 }
 
@@ -1792,7 +1803,7 @@ function addGasto(tipo){
   } else {
     gastos.costosFijos.push({id:uid(),date,desc,amount,category:document.getElementById('gf-cat')?.value||'',invoiceNum:document.getElementById('gf-inv')?.value||''});
   }
-  S();renderGastos();if(curPage==='dash')renderDash();
+  logAction('Gasto registrado: "'+desc+'" — '+fmt(amount)+' ('+tipo+')');S();renderGastos();if(curPage==='dash')renderDash();
 }
 function delGasto(tipo,id){if(!confirm('¿Eliminar gasto?'))return;gastos[tipo]=gastos[tipo].filter(g=>g.id!==id);S();renderGastos();if(curPage==='dash')renderDash()}
 function gastoEdit(tipo,id){
@@ -1959,14 +1970,24 @@ function renderConfig(){
     </div>
 
     <div class="card" style="margin-bottom:14px">
-      <div class="fl" style="margin-bottom:12px">🔐 PINs de acceso por rol</div>
+      <div class="fl" style="margin-bottom:12px">🔐 Contraseñas de acceso</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-        ${['gerencia','finanzas','ventas'].map(r=>`<div class="fg"><div class="fl">${r.charAt(0).toUpperCase()+r.slice(1)}</div>
-          <div style="display:flex;gap:6px"><input class="fi" type="password" id="pin-${r}" placeholder="Nuevo PIN (mín 4)" maxlength="6">
-          <button class="btn-h btn-ac" onclick="savePin('${r}')" style="height:32px;padding:0 10px">✓</button></div>
+        ${[['diego','👔 Diego','gerencia'],['veronica','💰 Verónica','finanzas'],['alexis','👔 Alexis','gerencia']].map(([u,label,rol])=>`<div class="fg"><div class="fl">${label} <span style="font-size:10px;color:var(--tx3)">(${rol})</span></div>
+          <div style="display:flex;gap:6px"><input class="fi" type="password" id="upwd-${u}" placeholder="Nueva contraseña" maxlength="20">
+          <button class="btn-h btn-ac" onclick="saveUserPwd('${u}')" style="height:32px;padding:0 10px">✓</button></div>
         </div>`).join('')}
       </div>
-      <div style="font-size:11px;color:var(--tx3);margin-top:10px">PIN por defecto: <b>1234</b> — cámbialo antes de compartir con el equipo.</div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:10px">Contraseña por defecto: <b>1234</b> — cámbiala antes de compartir.</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="fl">📋 Historial de movimientos</div>
+        <button class="btn-h" style="font-size:11px" onclick="state.historial=[];S();renderConfig()">🗑 Limpiar</button>
+      </div>
+      ${state.historial&&state.historial.length?`<div style="max-height:300px;overflow-y:auto"><table class="tbl" style="font-size:11px"><thead><tr><th style="white-space:nowrap">Fecha/Hora</th><th>Usuario</th><th>Acción</th></tr></thead><tbody>
+        ${state.historial.slice(0,200).map(h=>`<tr><td style="white-space:nowrap;color:var(--tx3)">${new Date(h.ts).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td style="font-weight:600;white-space:nowrap">${h.user}</td><td>${h.action}</td></tr>`).join('')}
+      </tbody></table></div>`:`<div style="font-size:12px;color:var(--tx3);text-align:center;padding:20px">Sin movimientos registrados aún.</div>`}
     </div>
 
     <div class="card" style="margin-bottom:14px">
@@ -1994,7 +2015,7 @@ function renderConfig(){
     </div>`;
 }
 function saveCapital(){const v=parseFloat(document.getElementById('cfg-capital')?.value)||0;state.capital=v;S();renderConfig();if(curPage==='dash')renderDash()}
-function savePin(role){const inp=document.getElementById('pin-'+role);const pin=inp?.value.trim();if(!pin||pin.length<4){alert('PIN debe tener al menos 4 dígitos.');return}state.pins[role]=pin;S();inp.value='';alert(`✓ PIN de ${role} actualizado`)}
+function saveUserPwd(u){const inp=document.getElementById('upwd-'+u);const pwd=inp?.value.trim();if(!pwd||pwd.length<4){alert('La contraseña debe tener al menos 4 caracteres.');return}if(!state.users[u])state.users[u]={pwd:'1234',role:'gerencia'};state.users[u].pwd=pwd;logAction('Contraseña cambiada: '+u);S();inp.value='';alert('✓ Contraseña de '+u+' actualizada')}
 function resetSystem(){
   if(!confirm('⚠ ¿Reiniciar el sistema? Se borrarán TODOS los datos.'))return;
   if(!confirm('¿Completamente seguro?'))return;
