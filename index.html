@@ -1992,7 +1992,7 @@ function resetSystem(){
   if(!confirm('⚠ ¿Reiniciar el sistema? Se borrarán TODOS los datos.'))return;
   if(!confirm('¿Completamente seguro?'))return;
   localStorage.removeItem('desit_spa_local');
-  if(fbRef)fbRef.remove();
+  if(sbClient)sbClient.from('app_data').upsert({id:1,state:DEFAULT_STATE});
   location.reload();
 }
 
@@ -2014,10 +2014,11 @@ function importJSON(input){
       if(!confirm('¿Restaurar datos desde este backup? Se sobrescribirán los datos actuales.'))return;
       state={...DEFAULT_STATE,...data};
       state.gastos={...DEFAULT_STATE.gastos,...(data.gastos||{})};
-      state.pins={...DEFAULT_STATE.pins,...(data.pins||{})};
-      localStorage.setItem('desit_spa_v2',JSON.stringify(state));
-      alert('✓ Datos restaurados. El sistema se recargará.');
-      location.reload();
+      state.users={...DEFAULT_STATE.users,...(data.users||{})};
+      if(!Array.isArray(state.historial))state.historial=[];
+      saveLocalBackup();
+      S();
+      setTimeout(()=>{alert('✓ Datos restaurados y subidos a Supabase. El sistema se recargará.');location.reload();},800);
     }catch(err){alert('Error al importar: '+err.message)}
     input.value='';
   };
