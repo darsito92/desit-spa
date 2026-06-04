@@ -2000,9 +2000,23 @@ function resetSystem(){
 // BACKUP / RESTORE
 // ═══════════════════════════════════════
 function exportDashJSON(){
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='desit_spa_backup_'+todayStr()+'.json';a.click();URL.revokeObjectURL(a.href);
+  const doExport=s=>{
+    const blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='desit_spa_backup_'+todayStr()+'.json';a.click();URL.revokeObjectURL(a.href);
+  };
+  if(sbClient&&!localOnly){
+    sbClient.from('app_data').select('state').eq('id',1).single().then(({data,error})=>{
+      if(!error&&data?.state){
+        Object.assign(state,data.state);
+        doExport(data.state);
+      } else {
+        doExport(state);
+      }
+    });
+  } else {
+    doExport(state);
+  }
 }
 function importJSON(input){
   const file=input.files[0];if(!file)return;
