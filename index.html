@@ -229,9 +229,18 @@ input[type=number]::-webkit-inner-spin-button{opacity:.4}
 
 <!-- MODALS -->
 <div class="modal-ov" id="cotiz-modal" style="display:none" onclick="closeModal('cotiz-modal')">
-  <div class="modal" onclick="event.stopPropagation()">
+  <div class="modal" style="width:480px" onclick="event.stopPropagation()">
     <h3>📋 Exportar Cotización</h3>
-    <p style="font-size:13px;color:var(--tx3);margin-bottom:14px">¿Agregar un 2do PC a esta cotización?</p>
+    <div style="margin-bottom:14px">
+      <div class="fl" style="margin-bottom:8px">Datos del cliente <span style="font-size:10px;font-weight:400;color:var(--tx3)">(opcional)</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg"><div class="fl">Empresa / Nombre</div><input class="fi" id="cotiz-cli-name" placeholder="Ej: TechCorp SpA"></div>
+        <div class="fg"><div class="fl">RUT</div><input class="fi" id="cotiz-cli-rut" placeholder="Ej: 76.123.456-7"></div>
+        <div class="fg"><div class="fl">Correo</div><input class="fi" id="cotiz-cli-email" placeholder="correo@empresa.cl"></div>
+        <div class="fg"><div class="fl">Teléfono</div><input class="fi" id="cotiz-cli-phone" placeholder="+56 9..."></div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--tx3);margin-bottom:10px">¿Agregar un 2do PC a esta cotización?</p>
     <div class="modal-list" id="cotiz-modal-list"></div>
     <button class="btn-ac" style="width:100%;padding:9px;margin-top:10px;border-radius:8px;font-size:13px" onclick="doCotizacion(null)">Solo este PC</button>
     <button class="modal-cancel" style="margin-top:6px" onclick="closeModal('cotiz-modal')">Cancelar</button>
@@ -248,7 +257,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.4}
   <div class="modal" onclick="event.stopPropagation()">
     <h3>✅ Completar venta</h3>
     <p class="text-sm mb-4" style="color:var(--tx3)">Registra el documento de venta al cliente.</p>
-    <div class="grid grid-cols-2 gap-3 mb-4">
+    <div class="grid grid-cols-2 gap-3 mb-3">
       <div class="fg"><div class="fl">Tipo documento</div>
         <select class="fi-sel" id="inv-type-sel">
           <option value="boleta">🧾 Boleta</option>
@@ -257,6 +266,14 @@ input[type=number]::-webkit-inner-spin-button{opacity:.4}
         </select>
       </div>
       <div class="fg"><div class="fl">N° Documento</div><input class="fi" id="inv-num-inp" placeholder="Ej: BOL-0012345"></div>
+    </div>
+    <div class="fg" style="margin-bottom:14px"><div class="fl">Medio de pago</div>
+      <select class="fi-sel" id="inv-payment-sel">
+        <option value="">— Sin definir —</option>
+        <option value="transferencia">💸 Transferencia</option>
+        <option value="transbank">💳 Transbank</option>
+        <option value="mercadolibre">🛒 MercadoLibre</option>
+      </select>
     </div>
     <div class="flex gap-2">
       <button class="btn-h flex-1" onclick="closeModal('invoice-modal')">Cancelar</button>
@@ -728,7 +745,7 @@ function fmtDate(d){if(!d)return '—';const[y,m,dd]=d.split('-');return `${dd}/
 function monthLabel(ym){if(!ym)return '';const[y,m]=ym.split('-');return ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][parseInt(m)-1]+' '+y}
 function makePart(t){return{id:uid(),cat:t.cat,type:t.name,name:'',ph:t.ph||'Nombre',cost:0,margin:20,qty:1,store:''}}
 function makePack(label){return{id:uid(),label,parts:TPL.map(makePart)}}
-function makeVenta(name){return{id:uid(),name,phone:'',date:todayStr(),notes:'',estado:'pendiente',invoiceType:'boleta',invoiceNum:'',parts:TPL.map(makePart)}}
+function makeVenta(name){return{id:uid(),name,phone:'',date:todayStr(),notes:'',estado:'pendiente',invoiceType:'boleta',invoiceNum:'',paymentMethod:'',parts:TPL.map(makePart)}}
 
 // ═══════════════════════════════════════
 // HELPERS
@@ -843,8 +860,8 @@ function renderDash(){
     ${ventasMes.length?`
     <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px;margin-top:4px">Ventas del mes</div>
     <table class="tbl" style="margin-bottom:16px">
-      <thead><tr><th>Cliente</th><th>Fecha</th><th>Documento</th><th class="tr">Costo</th><th class="tr">Venta</th><th class="tr">Ganancia</th></tr></thead>
-      <tbody>${ventasMes.map(v=>{const t=totals(v.parts);const docStr=v.invoiceNum?`${v.invoiceType==='boleta'?'🧾':'📄'} ${v.invoiceNum}`:'<span class="mu">—</span>';return`<tr><td class="bo">${v.name}</td><td class="mu">${fmtDate(v.date)}</td><td class="mu">${docStr}</td><td class="tr mu">${fmt(t.tc)}</td><td class="tr bo">${fmt(t.ts)}</td><td class="tr gr">+${fmt(t.profit)}</td></tr>`}).join('')}</tbody>
+      <thead><tr><th>Cliente</th><th>Fecha</th><th>Documento</th><th>Pago</th><th class="tr">Costo</th><th class="tr">Venta</th><th class="tr">Ganancia</th></tr></thead>
+      <tbody>${ventasMes.map(v=>{const t=totals(v.parts);const docStr=v.invoiceNum?`${v.invoiceType==='boleta'?'🧾':'📄'} ${v.invoiceNum}`:'<span class="mu">—</span>';const pmIcons={transferencia:'💸',transbank:'💳',mercadolibre:'🛒'};const pmLabels={transferencia:'Transf.',transbank:'Transbank',mercadolibre:'MercadoLibre'};const pm=v.paymentMethod&&pmIcons[v.paymentMethod]?`<span title="${pmLabels[v.paymentMethod]}">${pmIcons[v.paymentMethod]} ${pmLabels[v.paymentMethod]}</span>`:'<span class="mu">—</span>';return`<tr><td class="bo">${v.name}</td><td class="mu">${fmtDate(v.date)}</td><td class="mu">${docStr}</td><td class="mu" style="white-space:nowrap">${pm}</td><td class="tr mu">${fmt(t.tc)}</td><td class="tr bo">${fmt(t.ts)}</td><td class="tr gr">+${fmt(t.profit)}</td></tr>`}).join('')}</tbody>
     </table>`:''}
 
     <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Egresos del mes por categoría</div>
@@ -906,7 +923,15 @@ function renderVentasMain(){
   mDiv.innerHTML=`
     <div class="fg"><div class="fl">Fecha</div><input class="fi" type="date" value="${v.date||''}" style="width:148px" oninput="vfMeta('date',this.value)"></div>
     <div class="fg"><div class="fl">Teléfono</div><input class="fi" value="${v.phone||''}" placeholder="+56 9..." style="width:135px" oninput="vfMeta('phone',this.value)"></div>
-    <div class="fg"><div class="fl">Notas</div><input class="fi" value="${v.notes||''}" placeholder="Notas..." style="width:175px" oninput="vfMeta('notes',this.value)"></div>
+    <div class="fg"><div class="fl">Notas</div><input class="fi" value="${v.notes||''}" placeholder="Notas..." style="width:155px" oninput="vfMeta('notes',this.value)"></div>
+    <div class="fg"><div class="fl">Medio de pago</div>
+      <select class="fi-sel" style="width:155px" onchange="vfMeta('paymentMethod',this.value)">
+        <option value="" ${!v.paymentMethod?'selected':''}>— Sin definir —</option>
+        <option value="transferencia" ${v.paymentMethod==='transferencia'?'selected':''}>💸 Transferencia</option>
+        <option value="transbank" ${v.paymentMethod==='transbank'?'selected':''}>💳 Transbank</option>
+        <option value="mercadolibre" ${v.paymentMethod==='mercadolibre'?'selected':''}>🛒 MercadoLibre</option>
+      </select>
+    </div>
     <button class="btn-ap" style="border-color:var(--ac);color:var(--ac)" onclick="openPackModal('${v.id}')">⬇ Cargar pack</button>`;
   main.insertBefore(mDiv,main.children[1]);
 }
@@ -917,6 +942,7 @@ function vfEstado(val){
     pendingCompleteId=v.id;
     document.getElementById('inv-num-inp').value=v.invoiceNum||'';
     document.getElementById('inv-type-sel').value=v.invoiceType||'boleta';
+    document.getElementById('inv-payment-sel').value=v.paymentMethod||'';
     document.getElementById('invoice-modal').style.display='flex';
   } else {
     v.estado=val;S();renderVentasSB();updateBadges();renderVentasMain();
@@ -928,6 +954,7 @@ function confirmComplete(){
   v.estado='completada';
   v.invoiceType=document.getElementById('inv-type-sel').value;
   v.invoiceNum=document.getElementById('inv-num-inp').value.trim();
+  v.paymentMethod=document.getElementById('inv-payment-sel').value;
   v.parts.forEach(p=>{
     if(!p.name)return;
     const inv=inventory.find(i=>i.name.toLowerCase()===p.name.toLowerCase());
@@ -1084,6 +1111,13 @@ function shopifyImport(input){
 // ═══════════════════════════════════════
 // SHARED PARTS BUILDER
 // ═══════════════════════════════════════
+function mkTypeSelect(p,SF){
+  const types=TPL.filter(t=>t.cat===p.cat).map(t=>t.name);
+  const inList=types.includes(p.type);
+  const opts=types.map(n=>`<option value="${n}"${p.type===n?' selected':''}>${n}</option>`).join('')+
+    (!inList?`<option value="${p.type||'Componente'}" selected>${p.type||'Componente'}</option>`:'');
+  return`<select class="fi-sel" style="font-size:11px;margin-bottom:4px" onchange="const _t=TPL.find(x=>x.name===this.value);if(_t){const _ni=document.getElementById('ni_${p.id}');if(_ni)_ni.placeholder=_t.ph||'Nombre'};${SF}('${p.id}','type',this.value)">${opts}</select>`;
+}
 function buildPartsMain(elId,parts,label,ctx,hdrL,hdrR){
   const SF=ctx==='v'?'vfSet':'pfSet',DF=ctx==='v'?'vfDel':'pfDel',AF=ctx==='v'?'vfAdd':'pfAdd';
   let html=`<div class="sec-hdr">${hdrL}${hdrR}</div>`;
@@ -1095,7 +1129,7 @@ function buildPartsMain(elId,parts,label,ctx,hdrL,hdrR){
       const c=parseFloat(p.cost)||0,q=Math.max(1,parseInt(p.qty)||1),sale=to990(saleOf(c,p.margin)),profit=sale-c;
       const col=storeColor(p.store);
       html+=`<div class="pc"><div class="pt-grid">
-        <div class="fg"><div class="fl">${p.type}</div>
+        <div class="fg">${mkTypeSelect(p,SF)}
           <div class="nw"><input class="fi" id="ni_${p.id}" value="${(p.name||'').replace(/"/g,'&quot;')}" placeholder="${p.ph}" oninput="${SF}('${p.id}','name',this.value);showSugg(this,'${p.id}','${ctx}')" onblur="hideSugg('${p.id}')">
           <div class="sugg" id="sugg_${p.id}"></div></div></div>
         <div class="fg"><div class="fl">Tienda</div><select class="fi-sel" onchange="${SF}('${p.id}','store',this.value)">${storeOpts(p.store)}</select></div>
@@ -2108,15 +2142,23 @@ function exportReport(title,parts){
 }
 function exportCotizacion(){
   const pk=getActivePack();if(!pk)return;
+  ['cotiz-cli-name','cotiz-cli-rut','cotiz-cli-email','cotiz-cli-phone'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const others=packs.filter(p=>p.id!==pk.id);
-  if(!others.length){doCotizacion(null);return;}
   const list=document.getElementById('cotiz-modal-list');
-  list.innerHTML=others.map(p=>`<div class="modal-pi" onclick="doCotizacion('${p.id}')"><div style="font-weight:600">${p.label}</div><div style="font-size:12px;color:var(--tx3)">${(p.parts||[]).filter(x=>(parseFloat(x.cost)||0)>0).length} componentes</div></div>`).join('');
+  list.innerHTML=others.length
+    ?others.map(p=>`<div class="modal-pi" onclick="doCotizacion('${p.id}')"><div style="font-weight:600">${p.label}</div><div style="font-size:12px;color:var(--tx3)">${(p.parts||[]).filter(x=>(parseFloat(x.cost)||0)>0).length} componentes</div></div>`).join('')
+    :'<div style="font-size:12px;color:var(--tx3);padding:4px 0">Solo hay un pack disponible.</div>';
   document.getElementById('cotiz-modal').style.display='flex';
 }
 function doCotizacion(secondPkId){
   closeModal('cotiz-modal');
   const pk1=getActivePack();if(!pk1)return;
+  const client={
+    name:document.getElementById('cotiz-cli-name')?.value.trim()||'',
+    rut:document.getElementById('cotiz-cli-rut')?.value.trim()||'',
+    email:document.getElementById('cotiz-cli-email')?.value.trim()||'',
+    phone:document.getElementById('cotiz-cli-phone')?.value.trim()||''
+  };
   const c=cur();
   const fp=n=>(c==='CLP$'?'CLP$ '+Math.round(n).toLocaleString('es-CL'):c+n.toLocaleString('es-CL'));
   const thead=`<thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Precio neto unit.</th><th style="padding:7px;text-align:right">Neto total</th></tr></thead>`;
@@ -2139,7 +2181,7 @@ function doCotizacion(secondPkId){
       <tr><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">IVA (19%)</td><td style="padding:7px 10px;text-align:right">${fp(iva)}</td></tr>
       <tr style="background:#eef2ff;font-weight:700;border-top:2px solid #3b5bdb"><td colspan="4" style="padding:10px;text-align:right;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px;font-size:15px;color:#3b5bdb">${fp(neto+iva)}</td></tr>
     </tfoot>`;
-    printCotizacion('Cotización: '+pk1.label,`<table style="width:100%;border-collapse:collapse;font-size:13px">${thead}<tbody>${rows}</tbody>${tfoot}</table>`);
+    printCotizacion('Cotización: '+pk1.label,`<table style="width:100%;border-collapse:collapse;font-size:13px">${thead}<tbody>${rows}</tbody>${tfoot}</table>`,client);
   }else{
     const pk2=packs.find(p=>p.id===secondPkId);if(!pk2)return;
     const t1=buildRows(pk1);const t2=buildRows(pk2);
@@ -2158,7 +2200,7 @@ function doCotizacion(secondPkId){
       secH('PC 2 — '+pk2.label)+
       `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">${thead}<tbody>${t2.rows}</tbody>${sub(t2.neto)}</table>`+
       grandFoot;
-    printCotizacion('Cotización: '+pk1.label+' + '+pk2.label,content);
+    printCotizacion('Cotización: '+pk1.label+' + '+pk2.label,content,client);
   }
 }
 function exportLogReport(){
@@ -2169,19 +2211,25 @@ function exportLogReport(){
   const blocks=Object.entries(sm).map(([sn,sp])=>{let stc=0;const rows=sp.map(p=>{const q=Math.max(1,parseInt(p.qty)||1),co=parseFloat(p.cost)||0;stc+=co*q;return`<tr><td style="font-size:11px;font-weight:700;color:#3b5bdb;background:#eff3ff">${p.clientName}</td><td>${p.type}</td><td><b>${p.name||'—'}</b></td><td style="text-align:center">${q}</td><td style="text-align:right">${fp(co)}</td><td style="text-align:right;font-weight:700">${fp(Math.round(co*q))}</td></tr>`}).join('');return`<h3 style="font-size:15px;margin:22px 0 9px;border-left:4px solid #3b5bdb;padding-left:10px">${sn}</h3><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Cliente</th><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Costo u.</th><th style="padding:7px;text-align:right">Total</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f8f8fb;font-weight:700;border-top:2px solid #ddd"><td colspan="5" style="padding:7px">Subtotal ${sn}</td><td style="text-align:right;padding:7px">${fp(Math.round(stc))}</td></tr></tfoot></table>`}).join('');
   printW('Logística · '+fmtDate(logDate),blocks);
 }
-function printCotizacion(title,content){
+function printCotizacion(title,content,client={}){
+  const hasClient=client.name||client.rut||client.email||client.phone;
+  const cliBlock=hasClient?`<div style="background:#f4f6ff;border:1px solid #d0d8f8;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:12.5px;color:#333">
+    <div style="font-weight:700;font-size:14px;margin-bottom:3px">${client.name||'Cliente'}</div>
+    ${client.rut?`<span>RUT: ${client.rut}</span>`:''}${client.rut&&(client.email||client.phone)?' &nbsp;·&nbsp; ':''}${client.email?`<span>${client.email}</span>`:''}${client.email&&client.phone?' &nbsp;·&nbsp; ':''}${client.phone?`<span>${client.phone}</span>`:''}
+  </div>`:'';
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>
     *{box-sizing:border-box}
     body{font-family:'Segoe UI',Arial,sans-serif;padding:30px 30px 110px;color:#1a1a1a;max-width:920px;margin:0 auto}
     h1{font-size:19px;margin-bottom:3px}
-    .sub{font-size:12px;color:#777;margin-bottom:20px}
+    .sub{font-size:12px;color:#777;margin-bottom:14px}
     .cotiz-footer{font-size:10.5px;color:#444;line-height:1.6;border-top:1px solid #bbb;padding:8px 30px 6px;background:#fff}
     @media screen{.cotiz-footer{margin-top:32px;border-top:1px solid #ddd;padding:16px 0 0}}
     @media print{button{display:none}.cotiz-footer{position:fixed;bottom:0;left:0;right:0;padding:7px 30px 5px}}
   </style></head><body>
     <h1>${title}</h1>
     <div class="sub">Desit SPA · ${new Date().toLocaleDateString('es-CL')}</div>
+    ${cliBlock}
     <div>${content}</div>
     <div class="cotiz-footer">
       <div><strong>Validez:</strong> 5 días hábiles desde envío &nbsp;·&nbsp; <strong>Armado:</strong> 4–6 días hábiles (envío adicional según Courier) &nbsp;·&nbsp; Los equipos se entregan armados, probados y con <strong>Windows 10 PRO + Drivers</strong>.</div>
