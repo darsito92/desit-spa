@@ -228,6 +228,15 @@ input[type=number]::-webkit-inner-spin-button{opacity:.4}
 </div>
 
 <!-- MODALS -->
+<div class="modal-ov" id="cotiz-modal" style="display:none" onclick="closeModal('cotiz-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3>📋 Exportar Cotización</h3>
+    <p style="font-size:13px;color:var(--tx3);margin-bottom:14px">¿Agregar un 2do PC a esta cotización?</p>
+    <div class="modal-list" id="cotiz-modal-list"></div>
+    <button class="btn-ac" style="width:100%;padding:9px;margin-top:10px;border-radius:8px;font-size:13px" onclick="doCotizacion(null)">Solo este PC</button>
+    <button class="modal-cancel" style="margin-top:6px" onclick="closeModal('cotiz-modal')">Cancelar</button>
+  </div>
+</div>
 <div class="modal-ov" id="pack-modal" style="display:none" onclick="closeModal('pack-modal')">
   <div class="modal" onclick="event.stopPropagation()">
     <h3>Cargar desde pack</h3>
@@ -2058,25 +2067,58 @@ function exportReport(title,parts){
 }
 function exportCotizacion(){
   const pk=getActivePack();if(!pk)return;
-  const parts=pk.parts||[];
+  const others=packs.filter(p=>p.id!==pk.id);
+  if(!others.length){doCotizacion(null);return;}
+  const list=document.getElementById('cotiz-modal-list');
+  list.innerHTML=others.map(p=>`<div class="modal-pi" onclick="doCotizacion('${p.id}')"><div style="font-weight:600">${p.label}</div><div style="font-size:12px;color:var(--tx3)">${(p.parts||[]).filter(x=>(parseFloat(x.cost)||0)>0).length} componentes</div></div>`).join('');
+  document.getElementById('cotiz-modal').style.display='flex';
+}
+function doCotizacion(secondPkId){
+  closeModal('cotiz-modal');
+  const pk1=getActivePack();if(!pk1)return;
   const c=cur();
   const fp=n=>(c==='CLP$'?'CLP$ '+Math.round(n).toLocaleString('es-CL'):c+n.toLocaleString('es-CL'));
-  let totalNeto=0;
-  const rows=parts.filter(p=>(parseFloat(p.cost)||0)>0).map(p=>{
-    const q=Math.max(1,parseInt(p.qty)||1);
-    const svBruto=to990(saleOf(parseFloat(p.cost)||0,p.margin));
-    const neto=Math.round(svBruto/1.19);
-    totalNeto+=neto*q;
-    return`<tr><td style="padding:7px">${p.type}</td><td style="padding:7px">${p.name||'—'}</td><td style="padding:7px;text-align:center">${q}</td><td style="padding:7px;text-align:right">${fp(neto)}</td><td style="padding:7px;text-align:right;font-weight:600">${fp(neto*q)}</td></tr>`;
-  }).join('');
-  const iva=Math.round(totalNeto*0.19);
-  const totalBruto=totalNeto+iva;
-  const tfoot=`
-    <tr style="border-top:1px solid #ddd"><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">Neto</td><td style="padding:7px 10px;text-align:right">${fp(totalNeto)}</td></tr>
-    <tr><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">IVA (19%)</td><td style="padding:7px 10px;text-align:right">${fp(iva)}</td></tr>
-    <tr style="background:#eef2ff;font-weight:700;border-top:2px solid #3b5bdb"><td colspan="4" style="padding:10px;text-align:right;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px;font-size:15px;color:#3b5bdb">${fp(totalBruto)}</td></tr>`;
-  const table=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Precio neto unit.</th><th style="padding:7px;text-align:right">Neto total</th></tr></thead><tbody>${rows}</tbody><tfoot>${tfoot}</tfoot></table>`;
-  printCotizacion('Cotización: '+pk.label,table);
+  const thead=`<thead><tr style="background:#f4f4f8"><th style="padding:7px;text-align:left">Tipo</th><th style="padding:7px;text-align:left">Producto</th><th style="padding:7px;text-align:center">Cant.</th><th style="padding:7px;text-align:right">Precio neto unit.</th><th style="padding:7px;text-align:right">Neto total</th></tr></thead>`;
+  function buildRows(pk){
+    let neto=0;
+    const rows=(pk.parts||[]).filter(p=>(parseFloat(p.cost)||0)>0).map(p=>{
+      const q=Math.max(1,parseInt(p.qty)||1);
+      const svBruto=to990(saleOf(parseFloat(p.cost)||0,p.margin));
+      const nu=Math.round(svBruto/1.19);
+      neto+=nu*q;
+      return`<tr><td style="padding:7px">${p.type}</td><td style="padding:7px">${p.name||'—'}</td><td style="padding:7px;text-align:center">${q}</td><td style="padding:7px;text-align:right">${fp(nu)}</td><td style="padding:7px;text-align:right;font-weight:600">${fp(nu*q)}</td></tr>`;
+    }).join('');
+    return{rows,neto};
+  }
+  if(!secondPkId){
+    const{rows,neto}=buildRows(pk1);
+    const iva=Math.round(neto*0.19);
+    const tfoot=`<tfoot>
+      <tr style="border-top:1px solid #ddd"><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">Neto</td><td style="padding:7px 10px;text-align:right">${fp(neto)}</td></tr>
+      <tr><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">IVA (19%)</td><td style="padding:7px 10px;text-align:right">${fp(iva)}</td></tr>
+      <tr style="background:#eef2ff;font-weight:700;border-top:2px solid #3b5bdb"><td colspan="4" style="padding:10px;text-align:right;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px;font-size:15px;color:#3b5bdb">${fp(neto+iva)}</td></tr>
+    </tfoot>`;
+    printCotizacion('Cotización: '+pk1.label,`<table style="width:100%;border-collapse:collapse;font-size:13px">${thead}<tbody>${rows}</tbody>${tfoot}</table>`);
+  }else{
+    const pk2=packs.find(p=>p.id===secondPkId);if(!pk2)return;
+    const t1=buildRows(pk1);const t2=buildRows(pk2);
+    const totalNeto=t1.neto+t2.neto;
+    const iva=Math.round(totalNeto*0.19);
+    const sub=n=>`<tfoot><tr style="background:#f0f3ff;font-weight:600;border-top:1px solid #ddd"><td colspan="4" style="padding:7px 10px;text-align:right;color:#3b5bdb">Subtotal neto</td><td style="padding:7px 10px;text-align:right;color:#3b5bdb">${fp(n)}</td></tr></tfoot>`;
+    const secH=label=>`<h3 style="font-size:14px;font-weight:700;color:#3b5bdb;margin:0 0 8px;padding:4px 10px;border-left:3px solid #3b5bdb;background:#f0f3ff">${label}</h3>`;
+    const grandFoot=`<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:4px"><tbody>
+      <tr style="border-top:2px solid #3b5bdb"><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">Neto total (PC 1 + PC 2)</td><td style="padding:7px 10px;text-align:right">${fp(totalNeto)}</td></tr>
+      <tr><td colspan="4" style="padding:7px 10px;text-align:right;color:#555">IVA (19%)</td><td style="padding:7px 10px;text-align:right">${fp(iva)}</td></tr>
+      <tr style="background:#eef2ff;font-weight:700;border-top:2px solid #3b5bdb"><td colspan="4" style="padding:10px;text-align:right;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px;font-size:15px;color:#3b5bdb">${fp(totalNeto+iva)}</td></tr>
+    </tbody></table>`;
+    const content=
+      secH('PC 1 — '+pk1.label)+
+      `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px">${thead}<tbody>${t1.rows}</tbody>${sub(t1.neto)}</table>`+
+      secH('PC 2 — '+pk2.label)+
+      `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">${thead}<tbody>${t2.rows}</tbody>${sub(t2.neto)}</table>`+
+      grandFoot;
+    printCotizacion('Cotización: '+pk1.label+' + '+pk2.label,content);
+  }
 }
 function exportLogReport(){
   const c=cur();const fp=n=>(c==='CLP$'?'CLP$ '+Math.round(n).toLocaleString('es-CL'):c+n.toLocaleString('es-CL'));
