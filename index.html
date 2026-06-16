@@ -776,7 +776,7 @@ function allTimeBalance(){
   return{ingresos,gastosTotal,comprasTotal,balance:state.capital+ingresos-gastosTotal-comprasTotal};
 }
 
-let activePk=null,activeVenta=null,curPage='',dashMonth=todayStr().slice(0,7),gastosTab='gerencia',editingInvId=null,editingInvData={},editingGastoId=null,editingGastoTipo=null,editingGastoData={},editingCompraId=null,editingCompraData={},newInv={type:'',name:'',qty:1,cost:0,store:'',barcode:''},newCompra={date:todayStr(),invoiceNum:'',store:'',items:[]},newLoan={date:todayStr(),desc:'',items:[]};
+let activePk=null,activeVenta=null,curPage='',dashMonth=todayStr().slice(0,7),gastosTab='gerencia',editingInvId=null,editingInvData={},editingGastoId=null,editingGastoTipo=null,editingGastoData={},editingCompraId=null,editingCompraData={},newInv={type:'',name:'',qty:1,cost:0,store:'',barcode:''},newCompra={date:todayStr(),docType:'factura',invoiceNum:'',store:'',items:[]},newLoan={date:todayStr(),desc:'',items:[]};
 
 // ═══════════════════════════════════════
 // PAGE SWITCH
@@ -1441,9 +1441,10 @@ function renderFinanzas(){
   const histRows=compras.length?[...compras].reverse().map(c=>{
     const isEditing=editingCompraId===c.id;
     const hdr=isEditing?`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border-bottom:1px solid var(--bd);flex-wrap:wrap;gap:8px">
-        <div style="display:grid;grid-template-columns:155px 190px 1fr;gap:8px;align-items:end;flex:1;min-width:0">
+        <div style="display:grid;grid-template-columns:140px 165px 185px 1fr;gap:8px;align-items:end;flex:1;min-width:0">
           <div class="fg"><div class="fl">Fecha</div><input class="fi" type="date" value="${editingCompraData.date||c.date}" oninput="editingCompraData.date=this.value"></div>
-          <div class="fg"><div class="fl">N° Factura</div><input class="fi" value="${(editingCompraData.invoiceNum!=null?editingCompraData.invoiceNum:c.invoiceNum||'').replace(/"/g,'&quot;')}" oninput="editingCompraData.invoiceNum=this.value"></div>
+          <div class="fg"><div class="fl">Tipo documento</div>${docTypeSelect(editingCompraData.docType||c.docType||'factura',"editingCompraData.docType=this.value")}</div>
+          <div class="fg"><div class="fl">N° Documento</div><input class="fi" value="${(editingCompraData.invoiceNum!=null?editingCompraData.invoiceNum:c.invoiceNum||'').replace(/"/g,'&quot;')}" oninput="editingCompraData.invoiceNum=this.value"></div>
           <div class="fg"><div class="fl">Tienda</div><select class="fi-sel" oninput="editingCompraData.store=this.value"><option value="">— Sin tienda —</option>${stores.map(s=>`<option value="${s}" ${(editingCompraData.store!=null?editingCompraData.store:c.store)===s?'selected':''}>${s}</option>`).join('')}</select></div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
@@ -1452,7 +1453,7 @@ function renderFinanzas(){
         </div>
       </div>`:`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border-bottom:1px solid var(--bd)">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="font-size:13px;font-weight:700">📄 Factura #${c.invoiceNum}</div>
+          <div style="font-size:13px;font-weight:700">${(DOC_TYPES[c.docType]||DOC_TYPES.factura).icon} ${(DOC_TYPES[c.docType]||DOC_TYPES.factura).label} #${c.invoiceNum}</div>
           <div style="font-size:11px;color:var(--tx3)">${fmtDate(c.date)}</div>
           ${c.store?`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2)"><div style="width:7px;height:7px;border-radius:50%;background:${storeColor(c.store)}"></div>${c.store}</div>`:''}
         </div>
@@ -1478,9 +1479,10 @@ function renderFinanzas(){
     <p style="font-size:12px;color:var(--tx3);margin-top:2px">${compras.length} órdenes · Total: ${fmt(compras.reduce((a,c)=>a+c.total,0))}</p></div>
     <div class="card" style="margin-bottom:18px">
       <div class="fl" style="margin-bottom:12px">Nueva orden de compra</div>
-      <div style="display:grid;grid-template-columns:155px 190px 1fr;gap:9px;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:155px 170px 190px 1fr;gap:9px;margin-bottom:12px">
         <div class="fg"><div class="fl">Fecha</div><input class="fi" type="date" value="${newCompra.date}" oninput="newCompra.date=this.value"></div>
-        <div class="fg"><div class="fl">N° Factura *</div><input class="fi" id="nc-inv" value="${newCompra.invoiceNum}" placeholder="F-0001234" oninput="newCompra.invoiceNum=this.value"></div>
+        <div class="fg"><div class="fl">Tipo documento</div>${docTypeSelect(newCompra.docType||'factura',"newCompra.docType=this.value")}</div>
+        <div class="fg"><div class="fl">N° Documento *</div><input class="fi" id="nc-inv" value="${newCompra.invoiceNum}" placeholder="F-0001234" oninput="newCompra.invoiceNum=this.value"></div>
         <div class="fg"><div class="fl">Tienda</div><select class="fi-sel" oninput="newCompra.store=this.value"><option value="">— Sin tienda —</option>${stores.map(s=>`<option value="${s}" ${newCompra.store===s?'selected':''}>${s}</option>`).join('')}</select></div>
       </div>
       <div style="border-top:1px solid var(--bd);padding-top:12px;margin-bottom:10px">
@@ -1496,6 +1498,8 @@ function renderFinanzas(){
     <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Historial</div>
     ${histRows}`;
 }
+const DOC_TYPES={factura:{icon:'📄',label:'Factura'},boleta:{icon:'🧾',label:'Boleta'},guia:{icon:'📋',label:'Guía de despacho'},nota_credito:{icon:'📝',label:'Nota de crédito'}};
+function docTypeSelect(val,onchange){return`<select class="fi-sel" onchange="${onchange}">${Object.entries(DOC_TYPES).map(([k,v])=>`<option value="${k}"${val===k?' selected':''}>${v.icon} ${v.label}</option>`).join('')}</select>`}
 function addCI(){newCompra.items.push({id:uid(),type:'',name:'',qty:1,cost:0});renderFinanzas()}
 function removeCI(id){newCompra.items=newCompra.items.filter(i=>i.id!==id);renderFinanzas()}
 function setCI(id,f,v){const i=newCompra.items.find(x=>x.id===id);if(!i)return;i[f]=f==='qty'?parseInt(v)||1:f==='cost'?parseFloat(v)||0:v}
@@ -1504,13 +1508,13 @@ function guardarCompra(){
   if(!newCompra.items.length){alert('Agrega al menos una pieza.');return}
   if(newCompra.items.some(i=>!i.name)){alert('Todas las piezas necesitan nombre.');return}
   const total=newCompra.items.reduce((a,i)=>a+(i.cost*(i.qty||1)),0);
-  const compra={id:uid(),date:newCompra.date,invoiceNum:newCompra.invoiceNum,store:newCompra.store,items:[...newCompra.items],total};
+  const compra={id:uid(),date:newCompra.date,docType:newCompra.docType||'factura',invoiceNum:newCompra.invoiceNum,store:newCompra.store,items:[...newCompra.items],total};
   compra.items.forEach(ci=>{
     const ex=inventory.find(i=>i.name.toLowerCase()===ci.name.toLowerCase()&&(i.type===ci.type||!ci.type));
     if(ex){const nq=ci.qty,nc=ci.cost;ex.cost=ex.qty+nq>0?(ex.qty*ex.cost+nq*nc)/(ex.qty+nq):nc;ex.qty+=nq}
     else inventory.push({id:uid(),type:ci.type||'Otro',name:ci.name,qty:ci.qty,cost:ci.cost,store:compra.store||''});
   });
-  compras.push(compra);logAction('Compra registrada: factura '+compra.invoiceNum+' — '+fmt(compra.total||0)+(compra.store?' ('+compra.store+')':''));newCompra={date:todayStr(),invoiceNum:'',store:'',items:[]};
+  compras.push(compra);logAction('Compra registrada: '+compra.invoiceNum+' — '+fmt(compra.total||0)+(compra.store?' ('+compra.store+')':''));newCompra={date:todayStr(),docType:'factura',invoiceNum:'',store:'',items:[]};
   S();renderFinanzas();renderInventory();updateBadges();if(curPage==='dash')renderDash();
 }
 
@@ -1883,6 +1887,7 @@ function compraSaveEdit(id){
   const c=compras.find(x=>x.id===id);if(!c)return;
   const d=editingCompraData;
   c.date=d.date||c.date;
+  c.docType=d.docType||c.docType||'factura';
   c.invoiceNum=(d.invoiceNum!=null?d.invoiceNum.trim():null)||c.invoiceNum;
   c.store=d.store!=null?d.store:c.store;
   editingCompraId=null;editingCompraData={};
