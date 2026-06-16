@@ -478,7 +478,7 @@ function toggleHam(){
 }
 function closeHam(){document.getElementById('ham-overlay').style.display='none'}
 
-let sbClient=null, sbChannel=null, saveTimer=null, isSyncing=false, lastSyncTime=null, localOnly=false, stateLoaded=false;
+let sbClient=null, sbChannel=null, saveTimer=null, isSyncing=false, lastSyncTime=null, localOnly=false, stateLoaded=false, sbLastError=null, sbRetryTimer=null;
 
 function showSbSetup(){
   const url=localStorage.getItem('sb_url')||'';
@@ -576,7 +576,7 @@ let lastOwnWrite=0;
 function S(){
   saveLocalBackup();
   if(localOnly||!sbClient){setSyncStatus('offline');return}
-  clearTimeout(saveTimer);
+  clearTimeout(saveTimer);clearTimeout(sbRetryTimer);
   setSyncStatus('syncing');
   saveTimer=setTimeout(()=>{
     isSyncing=true;
@@ -584,10 +584,19 @@ function S(){
     sbClient.from('app_data').upsert({id:1,state}).then(({error})=>{
       isSyncing=false;
       if(error){
+        sbLastError=error.message;
         setSyncStatus('offline','Error al guardar — '+error.message);
         console.error('Supabase write error:',error);
         saveLocalBackup();
+        sbRetryTimer=setTimeout(()=>{
+          if(!localOnly&&sbClient){
+            sbClient.from('app_data').upsert({id:1,state}).then(({error:e2})=>{
+              if(!e2){sbLastError=null;lastSyncTime=new Date();setSyncStatus('connected');updateSyncTime();}
+            });
+          }
+        },8000);
       } else {
+        sbLastError=null;
         lastSyncTime=new Date();
         setSyncStatus('connected');
         updateSyncTime();
@@ -1926,6 +1935,28 @@ function renderLogistica(){
 // ═══════════════════════════════════════
 // CONFIGURACIÓN
 // ═══════════════════════════════════════
+async function diagSupabase(){
+  const el=document.getElementById('sb-diag-result');if(!el)return;
+  el.style.display='block';el.style.color='var(--tx)';
+  if(!sbClient){el.innerHTML='❌ <b>Sin conexión</b>: sbClient es null. <span style="color:var(--ac);cursor:pointer" onclick="showSbSetup()">Configurar Supabase →</span>';return}
+  if(localOnly){el.innerHTML='⚠ <b>Modo local activo</b>: datos NO se sincronizan a la nube. <span style="color:var(--ac);cursor:pointer" onclick="showSbSetup()">Reconectar →</span>';return}
+  el.textContent='⏳ Probando lectura...';
+  const {data,error:selErr}=await sbClient.from('app_data').select('id').eq('id',1).single();
+  if(selErr){el.innerHTML=`❌ <b>Error de lectura</b>: ${selErr.message}<br>Verifica que la URL y Anon Key sean correctas.`;el.style.color='var(--rd)';return}
+  el.textContent='✓ Lectura OK · Probando escritura...';
+  const {error:upErr}=await sbClient.from('app_data').upsert({id:1,state});
+  if(upErr){
+    el.style.color='var(--rd)';
+    const isRLS=upErr.message?.toLowerCase().includes('security')||upErr.message?.toLowerCase().includes('permission')||['42501','PGRST301','PGRST116'].includes(upErr.code);
+    el.innerHTML=`❌ <b>Error de escritura</b>: ${upErr.message}${isRLS?`<br><br>🔒 <b>Causa: RLS (Row Level Security)</b> está bloqueando las escrituras del anon key.<br>
+      <b>Solución — ejecuta esto en el SQL Editor de Supabase:</b><br>
+      <code style="display:block;background:var(--sf2);padding:8px;border-radius:6px;margin-top:6px;font-size:11px;user-select:all">ALTER TABLE app_data DISABLE ROW LEVEL SECURITY;</code>
+      O agrega una política Allow All en <b>Authentication → Policies → app_data</b>.`:'<br>Revisa la consola del navegador para más detalles.'}`;
+    return;
+  }
+  el.style.color='var(--gr)';
+  el.textContent='✅ Lectura y escritura OK — Supabase funciona correctamente';
+}
 function renderConfig(){
   const el=document.getElementById('cfg-inner');if(!el)return;
   el.innerHTML=`
@@ -1939,6 +1970,16 @@ function renderConfig(){
         ${localOnly?`<button class="btn-h" onclick="showSbSetup()" style="margin-left:auto;font-size:12px">⚙ Configurar</button>`:`<span style="font-size:11px;color:var(--tx3);margin-left:auto">Sincronización automática activa ☁</span>`}
       </div>
       <div style="font-size:12px;color:var(--tx3);line-height:1.7">${localOnly?'⚠ Los datos se guardan solo en este navegador. Verifica tu conexión a internet.':'Los cambios se sincronizan en ~2-3 segundos con todos los usuarios conectados.'}</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="fl" style="margin-bottom:10px">🔍 Diagnóstico de guardado</div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:10px">Si los datos no se guardan automáticamente, usa estos botones para detectar el problema.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-h btn-ac" onclick="diagSupabase()">▶ Probar lectura/escritura</button>
+        <button class="btn-h" onclick="S();alert('Guardado forzado enviado. Revisa el estado en la barra inferior.')">↻ Forzar guardado ahora</button>
+      </div>
+      <div id="sb-diag-result" style="margin-top:12px;font-size:12px;line-height:1.8;padding:10px;border-radius:7px;background:var(--sf2);display:${sbLastError?'block':'none'};color:var(--rd)">${sbLastError?('⚠ Último error: '+sbLastError):''}</div>
     </div>
 
     <div class="card" style="margin-bottom:14px">
