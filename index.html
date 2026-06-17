@@ -1518,8 +1518,8 @@ function guardarCompra(){
   const compra={id:uid(),date:newCompra.date,docType:newCompra.docType||'factura',invoiceNum:newCompra.invoiceNum,store:newCompra.store,items:[...newCompra.items],total};
   compra.items.forEach(ci=>{
     const ex=inventory.find(i=>i.name.toLowerCase()===ci.name.toLowerCase()&&(i.type===ci.type||!ci.type));
-    if(ex){const nq=ci.qty,nc=ci.cost;ex.cost=ex.qty+nq>0?(ex.qty*ex.cost+nq*nc)/(ex.qty+nq):nc;ex.qty+=nq}
-    else inventory.push({id:uid(),type:ci.type||'Otro',name:ci.name,qty:ci.qty,cost:ci.cost,store:compra.store||''});
+    if(ex){const nq=ci.qty,nc=ci.cost;ex.cost=ex.qty+nq>0?(ex.qty*ex.cost+nq*nc)/(ex.qty+nq):nc;ex.qty+=nq;if(compra.invoiceNum)ex.factura=compra.invoiceNum;}
+    else inventory.push({id:uid(),type:ci.type||'Otro',name:ci.name,qty:ci.qty,cost:ci.cost,store:compra.store||'',factura:compra.invoiceNum||''});
   });
   compras.push(compra);logAction('Compra registrada: '+compra.invoiceNum+' — '+fmt(compra.total||0)+(compra.store?' ('+compra.store+')':''));newCompra={date:todayStr(),docType:'factura',invoiceNum:'',store:'',items:[]};
   S();renderFinanzas();renderInventory();updateBadges();if(curPage==='dash')renderDash();
